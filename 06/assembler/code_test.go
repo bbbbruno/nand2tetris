@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 )
 
@@ -9,13 +10,26 @@ func TestTranslate(t *testing.T) {
 	err := errors.New("unknown command type")
 	c := NewCode()
 	testCases := []struct {
-		in   *Command
-		want string
+		in   []*Command
+		want []BinaryCommand
 		err  error
 	}{
-		{&Command{A_COMMAND, "100", "", "", ""}, "0000000001100100", nil},
-		{&Command{C_COMMAND, "", "D", "D+1", "JGT"}, "1110011111010001", nil},
-		{&Command{3, "", "D", "D+1", "JGT"}, "", err},
+		{
+			[]*Command{
+				{A_COMMAND, "100", "", "", ""},
+				{C_COMMAND, "", "D", "A", ""},
+				{A_COMMAND, "200", "", "", ""},
+				{C_COMMAND, "", "D", "D+A", "JGT"},
+			}, []BinaryCommand{
+				0b0000000001100100,
+				0b1110110000010000,
+				0b0000000011001000,
+				0b1110000010010001,
+			},
+			nil,
+		},
+		{
+			[]*Command{{3, "", "", "", ""}}, nil, err},
 	}
 	for _, test := range testCases {
 		got, err := c.Translate(test.in)
@@ -23,7 +37,8 @@ func TestTranslate(t *testing.T) {
 			t.Errorf("c.Translate(%#v) expected no error, got %#v", test.in, err)
 		} else if test.err == nil && err != nil {
 			t.Errorf("c.Translate(%#v) got %#v, want %#v", test.in, err, test.err)
-		} else if got != test.want {
+		}
+		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("c.Translate(%v) got %v, want %v", test.in, got, test.want)
 		}
 	}
@@ -33,12 +48,12 @@ func TestTranslateACommand(t *testing.T) {
 	err := errors.New("symbol must be int")
 	testCases := []struct {
 		in   *Command
-		want string
+		want BinaryCommand
 		err  error
 	}{
-		{&Command{A_COMMAND, "100", "", "", ""}, "0000000001100100", nil},
-		{&Command{A_COMMAND, "100g", "", "", ""}, "", err},
-		{&Command{A_COMMAND, "", "", "", ""}, "", err},
+		{&Command{A_COMMAND, "100", "", "", ""}, 0b0000000001100100, nil},
+		{&Command{A_COMMAND, "100g", "", "", ""}, 0, err},
+		{&Command{A_COMMAND, "", "", "", ""}, 0, err},
 	}
 	for _, test := range testCases {
 		got, err := translateACommand(test.in)
@@ -53,7 +68,24 @@ func TestTranslateACommand(t *testing.T) {
 }
 
 func TestTranslateCCommand(t *testing.T) {
-	// TODO: 実装する
+	testCases := []struct {
+		in   *Command
+		want BinaryCommand
+		err  error
+	}{
+		{&Command{C_COMMAND, "", "D", "A", ""}, 0b1110110000010000, nil},
+		{&Command{C_COMMAND, "", "D", "D+A", "JGT"}, 0b1110000010010001, nil},
+		{&Command{C_COMMAND, "", "M", "D", ""}, 0b1110001100001000, nil},
+		{&Command{C_COMMAND, "", "", "M", "JEQ"}, 0b1111110000000010, nil},
+	}
+	for _, test := range testCases {
+		got, err := translateCCommand(test.in)
+		if test.err == nil && err != nil {
+			t.Errorf("c.Translate(%#v) got %#v, want %#v", test.in, err, test.err)
+		} else if got != test.want {
+			t.Errorf("c.Translate(%v) got %v, want %v", test.in, got, test.want)
+		}
+	}
 }
 
 func TestTranslateDest(t *testing.T) {
