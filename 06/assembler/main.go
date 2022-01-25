@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func main() {
@@ -15,6 +16,7 @@ func main() {
 		log.Println("error: not asm file")
 		return
 	}
+
 	asmFile, err := os.Open(filename)
 	if err != nil {
 		log.Println(err)
@@ -22,35 +24,26 @@ func main() {
 	}
 	defer asmFile.Close()
 
-	hackFile, err := os.Create(filename[:len(filename)-len(ext)] + ".hack")
+	hackFile, err := os.Create(strings.Replace(filename, ext, "", 1) + ".hack")
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer hackFile.Close()
 
-	p, t, b, c := NewParser(), NewCode(), bufio.NewWriter(hackFile), bufio.NewScanner(asmFile)
-	for c.Scan() {
-		cmd := p.Parse(c.Text())
-		if cmd == nil {
-			continue
-		}
-
-		str, err := t.Translate(cmd)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		if _, err := fmt.Fprintln(b, str); err != nil {
-			log.Println(err)
-			return
-		}
-	}
-	if err := c.Err(); err != nil {
+	p, t, b := NewParser(), NewCode(), bufio.NewWriter(hackFile)
+	cmds := p.Parse(asmFile)
+	bcmds, err := t.Translate(cmds)
+	if err != nil {
 		log.Println(err)
 		return
 	}
 
+	for _, bcmd := range bcmds {
+		if _, err := fmt.Fprintln(b, bcmd); err != nil {
+			log.Println(err)
+			return
+		}
+	}
 	b.Flush()
 }

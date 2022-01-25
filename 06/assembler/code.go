@@ -12,39 +12,60 @@ func NewCode() Code {
 	return Code{}
 }
 
-func (c Code) Translate(cmd *Command) (string, error) {
-	switch cmd.Type {
-	case A_COMMAND:
-		return translateACommand(cmd)
-	case C_COMMAND:
-		return translateCCommand(cmd)
-	default:
-		return "", errors.New("unknown command type")
-	}
+var translatorsMap = map[cmdType]func(*Command) (BinaryCommand, error){
+	A_COMMAND: translateACommand,
+	C_COMMAND: translateCCommand,
 }
 
-func translateACommand(cmd *Command) (string, error) {
-	i, err := strconv.Atoi(cmd.Symbol)
+func (c Code) Translate(cmds []*Command) (bcmds []BinaryCommand, err error) {
+	for _, cmd := range cmds {
+		t, ok := translatorsMap[cmd.Type]
+		if !ok {
+			return nil, errors.New("unknown command type")
+		}
+
+		bcmd, err := t(cmd)
+		if err != nil {
+			return nil, err
+		}
+		bcmds = append(bcmds, bcmd)
+	}
+
+	return bcmds, nil
+}
+
+func translateACommand(cmd *Command) (BinaryCommand, error) {
+	sym, err := strconv.Atoi(cmd.Symbol)
 	if err != nil {
-		return "", errors.New("symbol must be int")
+		return 0, errors.New("symbol must be int")
 	}
-	return fmt.Sprintf("%d%015b", cmd.Type, i), nil
+	binary := fmt.Sprintf("%b%015b", cmd.Type, sym)
+	i, err := strconv.ParseInt(binary, 2, 0)
+	if err != nil {
+		return 0, err
+	}
+	return BinaryCommand(i), nil
 }
 
-func translateCCommand(cmd *Command) (string, error) {
+func translateCCommand(cmd *Command) (BinaryCommand, error) {
 	dest, err := translateDest(cmd.Dest)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	comp, err := translateComp(cmd.Comp)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	jump, err := translateJump(cmd.Jump)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	return fmt.Sprintf("%b11%07b%03b%03b", cmd.Type, comp, dest, jump), nil
+	binary := fmt.Sprintf("%b11%07b%03b%03b", cmd.Type, comp, dest, jump)
+	i, err := strconv.ParseInt(binary, 2, 0)
+	if err != nil {
+		return 0, err
+	}
+	return BinaryCommand(i), nil
 }
 
 var destsMap = map[string]uint8{
