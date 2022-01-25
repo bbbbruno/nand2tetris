@@ -6,10 +6,10 @@ import (
 	"strconv"
 )
 
-type Code struct{}
+type Translator struct{}
 
-func NewCode() Code {
-	return Code{}
+func NewTranslator() Translator {
+	return Translator{}
 }
 
 var translatorsMap = map[cmdType]func(*Command) (BinaryCommand, error){
@@ -17,7 +17,7 @@ var translatorsMap = map[cmdType]func(*Command) (BinaryCommand, error){
 	C_COMMAND: translateCCommand,
 }
 
-func (c Code) Translate(cmds []*Command) (bcmds []BinaryCommand, err error) {
+func (c Translator) Translate(cmds []*Command) (bcmds []BinaryCommand, err error) {
 	for _, cmd := range cmds {
 		t, ok := translatorsMap[cmd.Type]
 		if !ok {

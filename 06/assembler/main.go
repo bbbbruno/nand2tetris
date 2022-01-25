@@ -31,7 +31,7 @@ func main() {
 	}
 	defer hackFile.Close()
 
-	p, t, b := NewParser(), NewCode(), bufio.NewWriter(hackFile)
+	p, t, b := NewParser(), NewTranslator(), bufio.NewWriter(hackFile)
 	cmds := p.Parse(asmFile)
 	bcmds, err := t.Translate(cmds)
 	if err != nil {

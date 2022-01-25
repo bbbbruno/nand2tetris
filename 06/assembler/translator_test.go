@@ -8,7 +8,7 @@ import (
 
 func TestTranslate(t *testing.T) {
 	err := errors.New("unknown command type")
-	c := NewCode()
+	c := NewTranslator()
 	testCases := []struct {
 		in   []*Command
 		want []BinaryCommand
