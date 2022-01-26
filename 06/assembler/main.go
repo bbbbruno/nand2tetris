@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -31,19 +32,28 @@ func main() {
 	}
 	defer hackFile.Close()
 
-	p, t, b := NewParser(), NewTranslator(), bufio.NewWriter(hackFile)
-	cmds := p.Parse(asmFile)
-	bcmds, err := t.Translate(cmds)
-	if err != nil {
+	if err := Assemble(asmFile, hackFile); err != nil {
 		log.Println(err)
 		return
+	}
+}
+
+func Assemble(r io.Reader, w io.Writer) error {
+	p, t, b := NewParser(), NewTranslator(), bufio.NewWriter(w)
+
+	bcmds, err := t.Translate(p.Parse(r))
+	if err != nil {
+		return err
 	}
 
 	for _, bcmd := range bcmds {
 		if _, err := fmt.Fprintln(b, bcmd); err != nil {
-			log.Println(err)
-			return
+			return err
 		}
 	}
-	b.Flush()
+	if err := b.Flush(); err != nil {
+		return err
+	}
+
+	return nil
 }
