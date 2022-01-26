@@ -12,34 +12,35 @@ func NewTranslator() Translator {
 	return Translator{}
 }
 
-var translatorsMap = map[cmdType]func(*Command) (BinaryCommand, error){
-	A_COMMAND: translateACommand,
-	C_COMMAND: translateCCommand,
-}
-
-func (c Translator) Translate(cmds []*Command) (bcmds []BinaryCommand, err error) {
+func (c Translator) Translate(cmds []*Command, st *SymbolTable) (bcmds []BinaryCommand, err error) {
 	for _, cmd := range cmds {
-		t, ok := translatorsMap[cmd.Type]
-		if !ok {
+		switch cmd.Type {
+		case A_COMMAND:
+			bcmd, err := translateACommand(cmd, st)
+			if err != nil {
+				return nil, err
+			}
+			bcmds = append(bcmds, bcmd)
+		case C_COMMAND:
+			bcmd, err := translateCCommand(cmd)
+			if err != nil {
+				return nil, err
+			}
+			bcmds = append(bcmds, bcmd)
+		default:
 			return nil, errors.New("unknown command type")
 		}
-
-		bcmd, err := t(cmd)
-		if err != nil {
-			return nil, err
-		}
-		bcmds = append(bcmds, bcmd)
 	}
 
 	return bcmds, nil
 }
 
-func translateACommand(cmd *Command) (BinaryCommand, error) {
-	sym, err := strconv.Atoi(cmd.Symbol)
-	if err != nil {
-		return 0, errors.New("symbol must be int")
+func translateACommand(cmd *Command, st *SymbolTable) (BinaryCommand, error) {
+	addr, ok := st.Addr(cmd.Symbol)
+	if !ok {
+		return 0, errors.New("command symbol no address")
 	}
-	binary := fmt.Sprintf("%b%015b", cmd.Type, sym)
+	binary := fmt.Sprintf("%b%015b", cmd.Type, addr)
 	i, err := strconv.ParseInt(binary, 2, 0)
 	if err != nil {
 		return 0, err
