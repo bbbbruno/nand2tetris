@@ -7,12 +7,21 @@ type cmdType uint8
 const (
 	A_COMMAND cmdType = iota
 	C_COMMAND
+	L_COMMAND
 )
 
 type Command struct {
 	Type             cmdType
-	Symbol           string
+	Symbol           symbol
 	Dest, Comp, Jump string
+}
+
+func IsACommand(s string) (bool, symbol) {
+	return s[0] == '@', NewSymbol(s[1:])
+}
+
+func IsLCommand(s string) (bool, symbol) {
+	return s[0] == '(' && s[len(s)-1] == ')', NewSymbol(s[1 : len(s)-1])
 }
 
 type BinaryCommand uint
