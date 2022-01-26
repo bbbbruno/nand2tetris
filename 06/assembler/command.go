@@ -10,12 +10,14 @@ const (
 	L_COMMAND
 )
 
+// TODO: オブジェクト指向っぽくする
 type Command struct {
 	Type             cmdType
 	Symbol           symbol
 	Dest, Comp, Jump string
 }
 
+// TODO: コマンド種別ごとにシンボルをバリデーションする
 func IsACommand(s string) (bool, symbol) {
 	return s[0] == '@', NewSymbol(s[1:])
 }
