@@ -55,11 +55,11 @@ func parseSymbols(lines []string) *SymbolTable {
 			continue
 		}
 
-		if _, ok := st.Symbols[sym]; ok {
+		if _, ok := st.Addr(sym); ok {
 			continue
 		}
 
-		st.Symbols[sym] = count
+		st.AddSymbolWithAddr(sym, count)
 	}
 
 	return st

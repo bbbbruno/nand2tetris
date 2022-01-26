@@ -3,18 +3,18 @@ package main
 import "testing"
 
 func TestAddSymbol(t *testing.T) {
-	st := &SymbolTable{NextAddr: 20, Symbols: make(map[symbol]addr)}
+	st := NewSymbolTableWithOpts(20, make(map[symbol]addr))
 	st.AddSymbol("NEW")
-	if addr := st.NextAddr; addr != 21 {
+	if addr := st.nextAddr; addr != 21 {
 		t.Errorf("Expected 21, got %#v", addr)
 	}
-	if addr := st.Symbols["NEW"]; addr != 20 {
+	if addr := st.symbols["NEW"]; addr != 20 {
 		t.Errorf("Expected 20, got %#v", addr)
 	}
 }
 
 func TestAddr(t *testing.T) {
-	st := &SymbolTable{NextAddr: 17, Symbols: map[symbol]addr{"ARG": 1, "NEW": 16}}
+	st := NewSymbolTableWithOpts(17, map[symbol]addr{"ARG": 1, "NEW": 16})
 	testCases := []struct {
 		in    symbol
 		want  addr

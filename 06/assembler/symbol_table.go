@@ -23,8 +23,8 @@ func (s symbol) IsConst() bool {
 type addr uint
 
 type SymbolTable struct {
-	NextAddr addr
-	Symbols  map[symbol]addr
+	nextAddr addr
+	symbols  map[symbol]addr
 }
 
 var DefaultSymbols = map[symbol]addr{
@@ -56,23 +56,38 @@ var DefaultSymbols = map[symbol]addr{
 // 定義済みシンボル含めたシンボルテーブルのインスタンスを返す。
 // ユーザー定義シンボルのアドレスは１６から始まる。
 func NewSymbolTable() *SymbolTable {
-	st := &SymbolTable{NextAddr: 16, Symbols: make(map[symbol]addr)}
+	st := &SymbolTable{16, make(map[symbol]addr)}
 	for k, v := range DefaultSymbols {
-		st.Symbols[k] = v
+		st.symbols[k] = v
+	}
+	return st
+}
+
+// 定義済みシンボル含めたシンボルテーブルのインスタンスを返す。
+// 開始アドレスと初期シンボルを指定できる。
+func NewSymbolTableWithOpts(addr addr, symbols map[symbol]addr) *SymbolTable {
+	st := &SymbolTable{addr, symbols}
+	for k, v := range DefaultSymbols {
+		st.symbols[k] = v
 	}
 	return st
 }
 
 // シンボルテーブルにシンボルを追加する。
 func (st *SymbolTable) AddSymbol(sym symbol) {
-	st.Symbols[sym] = st.NextAddr
-	st.NextAddr += 1
+	st.symbols[sym] = st.nextAddr
+	st.nextAddr += 1
+}
+
+// アドレスを直接指定してシンボルテーブルにシンボルを追加する。
+func (st *SymbolTable) AddSymbolWithAddr(sym symbol, addr addr) {
+	st.symbols[sym] = addr
 }
 
 // シンボルテーブル内のシンボルのアドレスと見つかったかどうかを返す。
 // シンボルが定数値の場合はaddr型に変換して返す。
 func (st *SymbolTable) Addr(sym symbol) (addr, bool) {
-	if i, ok := st.Symbols[sym]; ok {
+	if i, ok := st.symbols[sym]; ok {
 		return i, true
 	}
 
