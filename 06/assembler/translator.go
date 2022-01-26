@@ -12,6 +12,7 @@ func NewTranslator() Translator {
 	return Translator{}
 }
 
+// 文字列形式のコマンドをバイナリ形式に変換する
 func (c Translator) Translate(cmds []*Command, st *SymbolTable) (bcmds []BinaryCommand, err error) {
 	for _, cmd := range cmds {
 		switch cmd.Type {
@@ -35,6 +36,7 @@ func (c Translator) Translate(cmds []*Command, st *SymbolTable) (bcmds []BinaryC
 	return bcmds, nil
 }
 
+// Aコマンドをバイナリ形式に変換する
 func translateACommand(cmd *Command, st *SymbolTable) (BinaryCommand, error) {
 	addr, ok := st.Addr(cmd.Symbol)
 	if !ok {
@@ -48,6 +50,7 @@ func translateACommand(cmd *Command, st *SymbolTable) (BinaryCommand, error) {
 	return BinaryCommand(i), nil
 }
 
+// Cコマンドをバイナリ形式に変換する
 func translateCCommand(cmd *Command) (BinaryCommand, error) {
 	dest, err := translateDest(cmd.Dest)
 	if err != nil {
@@ -80,6 +83,7 @@ var destsMap = map[string]uint8{
 	"AMD": 0b111,
 }
 
+// Destをバイナリ形式に変換する
 func translateDest(dest string) (uint8, error) {
 	binary, ok := destsMap[dest]
 	if !ok {
@@ -122,6 +126,7 @@ var compsMap = map[string]uint8{
 	"D|M": 0b1010101,
 }
 
+// Compをバイナリ形式に変換する
 func translateComp(comp string) (uint8, error) {
 	binary, ok := compsMap[comp]
 	if !ok {
@@ -142,6 +147,7 @@ var jumpsMap = map[string]uint8{
 	"JMP": 0b111,
 }
 
+// Jumpをバイナリ形式に変換する
 func translateJump(jump string) (uint8, error) {
 	binary, ok := jumpsMap[jump]
 	if !ok {
