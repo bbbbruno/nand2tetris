@@ -56,6 +56,7 @@ func (p *parser) Advance() error {
 	return nil
 }
 
+// 与えられた文字列を解析してVMCommand型のインスタンスを生成する。
 func (p *parser) parse(s string) vmcommand.VMCommand {
 	if i := strings.LastIndex(s, "//"); i != -1 { // コメントアウトを除去
 		s = s[:i]

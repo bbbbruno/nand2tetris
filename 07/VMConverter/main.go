@@ -10,6 +10,7 @@ import (
 	"vmconverter/translator"
 )
 
+// TODO：ディレクトリを指定できるようにする。ディレクトリ内の全てのファイルを変換する。
 func main() {
 	filename := os.Args[1]
 	ext := filepath.Ext(filename)

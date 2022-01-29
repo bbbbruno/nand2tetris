@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
 
 	"vmconverter/vmcommand"
 )
@@ -54,10 +53,10 @@ var operationMap = map[string]string{
 	"or":  operateDouble("M|D"),
 	"not": operateSingle("!M"),
 }
-var comparisonMap = map[string]func() string{
-	"eq": func() string { return operateCompare("JEQ") },
-	"gt": func() string { return operateCompare("JGT") },
-	"lt": func() string { return operateCompare("JLT") },
+var comparisonMap = map[string]string{
+	"eq": "JEQ",
+	"gt": "JGT",
+	"lt": "JLT",
 }
 
 // 算術コマンドを書き込む。
@@ -69,7 +68,7 @@ func (c *codewriter) WriteArithmethic(instruction string) error {
 	var text string
 	switch instruction {
 	case "eq", "gt", "lt":
-		text = comparisonMap[instruction]()
+		text = operateCompare(comparisonMap[instruction])
 	default:
 		text = operationMap[instruction]
 	}
@@ -102,72 +101,19 @@ func (c *codewriter) checkClosed() error {
 	}
 }
 
-var segmentMap = map[string]func(int) string{
-	"constant": func(index int) string { return constant(index) + push() },
-}
-
 func (c *codewriter) writePush(segment string, index int) error {
-	text := segmentMap[segment](index)
+	var text string
+	if segment == "constant" {
+		text = constant(index) + push()
+	} else {
+		text = memoryPush(segment, index)
+	}
 	_, err := fmt.Fprint(c, text)
 	return err
 }
 
 func (c *codewriter) writePop(segment string, index int) error {
-	return nil
-}
-
-func push() string {
-	return `@SP
-A=M
-M=D
-@SP
-M=M+1
-`
-}
-
-func pop(comp string) string {
-	return fmt.Sprintf(`@SP
-M=M-1
-A=M
-D=%s
-M=0
-`, comp)
-}
-
-func operateDouble(comp string) string {
-	return pop("M") + pop(comp) + push()
-}
-
-func operateSingle(comp string) string {
-	return pop(comp) + push()
-}
-
-func operateCompare(jump string) string {
-	return pop("M") + pop("M-D") + compare(jump) + push()
-}
-
-func compare(jump string) string {
-	label := rand.Intn(1000000)
-	return fmt.Sprintf(`@TRUE%d
-D;%s
-D=0
-@FINAL%d
-0;JMP
-(TRUE%d)
-D=-1
-(FINAL%d)
-`, label, jump, label, label, label)
-}
-
-func constant(index int) string {
-	return fmt.Sprintf(`@%d
-D=A
-`, index)
-}
-
-func end() string {
-	return `(END)
-@END
-0;JMP
-`
+	text := memoryPop(segment, index)
+	_, err := fmt.Fprint(c, text)
+	return err
 }
