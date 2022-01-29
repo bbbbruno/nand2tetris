@@ -1,16 +1,19 @@
-package main
+package translator
 
 import (
 	"bufio"
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
+
+	"vmconverter/vmcommand"
 )
 
 type Translator interface {
 	SetNewFile(io.Writer)
 	WriteArithmethic(string) error
-	WritePushPop(commandType, string, int) error
+	WritePushPop(vmcommand.CommandType, string, int) error
 	Close() error
 }
 
@@ -43,8 +46,18 @@ func (c *codewriter) Close() error {
 	return nil
 }
 
-var instructionAsmMap = map[string]string{
-	"add": pop("M") + pop("D+M") + push(),
+var operationMap = map[string]string{
+	"add": operateDouble("M+D"),
+	"sub": operateDouble("M-D"),
+	"neg": operateSingle("-M"),
+	"and": operateDouble("M&D"),
+	"or":  operateDouble("M|D"),
+	"not": operateSingle("!M"),
+}
+var comparisonMap = map[string]func() string{
+	"eq": func() string { return operateCompare("JEQ") },
+	"gt": func() string { return operateCompare("JGT") },
+	"lt": func() string { return operateCompare("JLT") },
 }
 
 // 算術コマンドを書き込む。
@@ -53,21 +66,28 @@ func (c *codewriter) WriteArithmethic(instruction string) error {
 		return err
 	}
 
-	text := instructionAsmMap[instruction]
+	var text string
+	switch instruction {
+	case "eq", "gt", "lt":
+		text = comparisonMap[instruction]()
+	default:
+		text = operationMap[instruction]
+	}
+
 	_, err := fmt.Fprint(c, text)
 	return err
 }
 
 // PUSHまたはPOPコマンドを書き込む。
-func (c *codewriter) WritePushPop(instruction commandType, segment string, index int) error {
+func (c *codewriter) WritePushPop(instruction vmcommand.CommandType, segment string, index int) error {
 	if err := c.checkClosed(); err != nil {
 		return err
 	}
 
 	switch instruction {
-	case C_PUSH:
+	case vmcommand.C_PUSH:
 		return c.writePush(segment, index)
-	case C_POP:
+	case vmcommand.C_POP:
 		return c.writePop(segment, index)
 	default:
 		return nil
@@ -112,6 +132,31 @@ A=M
 D=%s
 M=0
 `, comp)
+}
+
+func operateDouble(comp string) string {
+	return pop("M") + pop(comp) + push()
+}
+
+func operateSingle(comp string) string {
+	return pop(comp) + push()
+}
+
+func operateCompare(jump string) string {
+	return pop("M") + pop("M-D") + compare(jump) + push()
+}
+
+func compare(jump string) string {
+	label := rand.Intn(1000000)
+	return fmt.Sprintf(`@TRUE%d
+D;%s
+D=0
+@FINAL%d
+0;JMP
+(TRUE%d)
+D=-1
+(FINAL%d)
+`, label, jump, label, label, label)
 }
 
 func constant(index int) string {

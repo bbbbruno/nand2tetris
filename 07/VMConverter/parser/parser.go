@@ -1,37 +1,26 @@
-package main
+package parser
 
 import (
 	"bufio"
 	"errors"
 	"io"
-	"strconv"
 	"strings"
-)
 
-type commandType int
-
-const (
-	C_ARITHMETIC commandType = iota + 1
-	C_PUSH
-	C_POP
+	"vmconverter/vmcommand"
 )
 
 type Parser interface {
 	HasMoreCommands() bool
 	Advance() error
-	CommandType() commandType
-	Arg1() string
-	Arg2() int
 }
+
+type currentCommand vmcommand.VMCommand
+type nextCommand vmcommand.VMCommand
 
 type parser struct {
 	*bufio.Scanner
-	currentCommand *command
-	nextCommand    *command
-}
-
-type command struct {
-	instruction, arg1, arg2 string
+	currentCommand
+	nextCommand nextCommand
 }
 
 func NewParser(file *io.Reader) *parser {
@@ -67,33 +56,7 @@ func (p *parser) Advance() error {
 	return nil
 }
 
-var instructionMap = map[string]commandType{
-	"add":  C_ARITHMETIC,
-	"push": C_PUSH,
-}
-
-// 現在のVMコマンドの種類を返す。
-func (p parser) CommandType() commandType {
-	return instructionMap[p.currentCommand.instruction]
-}
-
-// 現在のVMコマンドの第一引数を返す。
-// VMコマンドの種類が算術コマンド（C_ARITHMETIC）である場合はコマンド自体を返す。
-func (p parser) Arg1() string {
-	if p.CommandType() == C_ARITHMETIC {
-		return p.currentCommand.instruction
-	}
-
-	return p.currentCommand.arg1
-}
-
-// 現在のVMコマンドの第二引数を返す。
-func (p parser) Arg2() int {
-	i, _ := strconv.Atoi(p.currentCommand.arg2)
-	return i
-}
-
-func (p parser) parse(s string) *command {
+func (p *parser) parse(s string) vmcommand.VMCommand {
 	if i := strings.LastIndex(s, "//"); i != -1 { // コメントアウトを除去
 		s = s[:i]
 	}
@@ -111,5 +74,5 @@ func (p parser) parse(s string) *command {
 		arg2 = ss[2]
 	}
 
-	return &command{instruction, arg1, arg2}
+	return vmcommand.NewVMCommand(instruction, arg1, arg2)
 }

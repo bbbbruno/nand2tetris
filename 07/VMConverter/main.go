@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"vmconverter/parser"
+	"vmconverter/translator"
 )
 
 func main() {
@@ -36,14 +38,14 @@ func main() {
 }
 
 func convert(r io.Reader, w io.Writer) error {
-	p, cw := NewParser(&r), NewCodeWriter()
+	p, cw := parser.NewParser(&r), translator.NewCodeWriter()
 
 	cw.SetNewFile(w)
 	for p.HasMoreCommands() {
 		if err := p.Advance(); err != nil {
 			return err
 		}
-		if p.CommandType() == C_ARITHMETIC {
+		if p.IsArithmetic() {
 			if err := cw.WriteArithmethic(p.Arg1()); err != nil {
 				return err
 			}
