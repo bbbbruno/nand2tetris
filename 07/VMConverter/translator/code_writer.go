@@ -10,7 +10,7 @@ import (
 )
 
 type Translator interface {
-	SetNewFile(io.Writer)
+	SetNewFile(io.Writer, string)
 	WriteArithmethic(string) error
 	WritePushPop(vmcommand.CommandType, string, int) error
 	Close() error
@@ -18,14 +18,16 @@ type Translator interface {
 
 type codewriter struct {
 	*bufio.Writer
-	closed bool
+	filename string
+	closed   bool
 }
 
 func NewCodeWriter() Translator {
 	return &codewriter{}
 }
 
-func (c *codewriter) SetNewFile(w io.Writer) {
+func (c *codewriter) SetNewFile(w io.Writer, filename string) {
+	c.filename = filename
 	c.closed = false
 	c.Writer = bufio.NewWriter(w)
 }
@@ -105,7 +107,9 @@ func (c *codewriter) writePush(segment string, index int) error {
 	var text string
 	switch segment {
 	case "constant":
-		text = constant(index) + push()
+		text = getConstant(index) + push()
+	case "static":
+		text = getStatic(c.filename, index) + push()
 	default:
 		text = memoryPush(segment, index)
 	}
@@ -114,7 +118,13 @@ func (c *codewriter) writePush(segment string, index int) error {
 }
 
 func (c *codewriter) writePop(segment string, index int) error {
-	text := memoryPop(segment, index)
+	var text string
+	switch segment {
+	case "static":
+		text = pop("M") + setStatic(c.filename, index)
+	default:
+		text = memoryPop(segment, index)
+	}
 	_, err := fmt.Fprint(c, text)
 	return err
 }

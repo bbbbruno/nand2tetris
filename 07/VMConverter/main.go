@@ -12,36 +12,38 @@ import (
 
 // TODO：ディレクトリを指定できるようにする。ディレクトリ内の全てのファイルを変換する。
 func main() {
-	filename := os.Args[1]
-	ext := filepath.Ext(filename)
+	path := os.Args[1]
+	base := filepath.Base(path)
+	ext := filepath.Ext(path)
+	filename := strings.Replace(base, ext, "", 1)
 	if ext != ".vm" {
 		log.Println("error: not vm file")
 		return
 	}
 
-	vmFile, err := os.Open(filename)
+	vmFile, err := os.Open(path)
 	if err != nil {
 		log.Println("error: ", err)
 		return
 	}
 
-	asmFile, err := os.Create(strings.Replace(filename, ext, "", 1) + ".asm")
+	asmFile, err := os.Create(strings.Replace(path, ext, "", 1) + ".asm")
 	if err != nil {
 		log.Println("error: ", err)
 		return
 	}
 	defer asmFile.Close()
 
-	if err := convert(vmFile, asmFile); err != nil {
+	if err := convert(vmFile, asmFile, filename); err != nil {
 		log.Println("error: ", err)
 		return
 	}
 }
 
-func convert(r io.Reader, w io.Writer) error {
+func convert(r io.Reader, w io.Writer, filename string) error {
 	p, cw := parser.NewParser(&r), translator.NewCodeWriter()
 
-	cw.SetNewFile(w)
+	cw.SetNewFile(w, filename)
 	for p.HasMoreCommands() {
 		if err := p.Advance(); err != nil {
 			return err

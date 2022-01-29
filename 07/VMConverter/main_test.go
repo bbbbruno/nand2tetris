@@ -8,12 +8,13 @@ import (
 )
 
 func TestConvertSimpleAdd(t *testing.T) {
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", "SimpleAdd", "SimpleAdd.vm"))
+	filename := "SimpleAdd"
+	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
 	in := bytes.NewBuffer(vmFile)
 	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", "SimpleAdd", "SimpleAdd.asm"))
+	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
 	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got)
+	err := convert(in, got, filename)
 	if err != nil {
 		t.Errorf("ERROR: %#v", err)
 	} else if got.String() != expected.String() {
@@ -22,12 +23,13 @@ func TestConvertSimpleAdd(t *testing.T) {
 }
 
 func TestConvertStackTest(t *testing.T) {
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", "StackTest", "StackTest.vm"))
+	filename := "StackTest"
+	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
 	in := bytes.NewBuffer(vmFile)
 	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", "StackTest", "StackTest.asm"))
+	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
 	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got)
+	err := convert(in, got, filename)
 	if err != nil {
 		t.Errorf("ERROR: %#v", err)
 	} else if got.String() != expected.String() {
@@ -36,12 +38,13 @@ func TestConvertStackTest(t *testing.T) {
 }
 
 func TestConvertBasicTest(t *testing.T) {
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", "BasicTest", "BasicTest.vm"))
+	filename := "BasicTest"
+	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
 	in := bytes.NewBuffer(vmFile)
 	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", "BasicTest", "BasicTest.asm"))
+	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
 	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got)
+	err := convert(in, got, filename)
 	if err != nil {
 		t.Errorf("ERROR: %#v", err)
 	} else if got.String() != expected.String() {
@@ -50,12 +53,13 @@ func TestConvertBasicTest(t *testing.T) {
 }
 
 func TestConvertPointerTest(t *testing.T) {
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", "PointerTest", "PointerTest.vm"))
+	filename := "PointerTest"
+	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
 	in := bytes.NewBuffer(vmFile)
 	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", "PointerTest", "PointerTest.asm"))
+	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
 	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got)
+	err := convert(in, got, filename)
 	if err != nil {
 		t.Errorf("ERROR: %#v", err)
 	} else if got.String() != expected.String() {
