@@ -106,8 +106,6 @@ func (c *codewriter) writePush(segment string, index int) error {
 	switch segment {
 	case "constant":
 		text = constant(index) + push()
-	case "pointer":
-		text = pointerPush(index)
 	default:
 		text = memoryPush(segment, index)
 	}
@@ -116,13 +114,7 @@ func (c *codewriter) writePush(segment string, index int) error {
 }
 
 func (c *codewriter) writePop(segment string, index int) error {
-	var text string
-	switch segment {
-	case "pointer":
-		text = pointerPop(index)
-	default:
-		text = memoryPop(segment, index)
-	}
+	text := memoryPop(segment, index)
 	_, err := fmt.Fprint(c, text)
 	return err
 }
