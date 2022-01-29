@@ -66,6 +66,21 @@ func memoryPop(segment string, index int) string {
 	return setAddress(label, index, comp) + pop("M") + setSegment()
 }
 
+var pointerLabelMap = map[int]string{
+	0: "THIS",
+	1: "THAT",
+}
+
+func pointerPush(index int) string {
+	label := pointerLabelMap[index]
+	return getPointer(label) + push()
+}
+
+func pointerPop(index int) string {
+	label := pointerLabelMap[index]
+	return pop("M") + setPointer(label)
+}
+
 func parseSegment(segment string) (label, comp string) {
 	label = segmentLabelMap[segment]
 	if segment == "temp" {
@@ -102,6 +117,18 @@ M=D
 @R13
 M=0
 `
+}
+
+func getPointer(label string) string {
+	return fmt.Sprintf(`@%s
+D=M
+`, label)
+}
+
+func setPointer(label string) string {
+	return fmt.Sprintf(`@%s
+M=D
+`, label)
 }
 
 func constant(index int) string {

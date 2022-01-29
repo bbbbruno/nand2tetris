@@ -103,9 +103,12 @@ func (c *codewriter) checkClosed() error {
 
 func (c *codewriter) writePush(segment string, index int) error {
 	var text string
-	if segment == "constant" {
+	switch segment {
+	case "constant":
 		text = constant(index) + push()
-	} else {
+	case "pointer":
+		text = pointerPush(index)
+	default:
 		text = memoryPush(segment, index)
 	}
 	_, err := fmt.Fprint(c, text)
@@ -113,7 +116,13 @@ func (c *codewriter) writePush(segment string, index int) error {
 }
 
 func (c *codewriter) writePop(segment string, index int) error {
-	text := memoryPop(segment, index)
+	var text string
+	switch segment {
+	case "pointer":
+		text = pointerPop(index)
+	default:
+		text = memoryPop(segment, index)
+	}
 	_, err := fmt.Fprint(c, text)
 	return err
 }
