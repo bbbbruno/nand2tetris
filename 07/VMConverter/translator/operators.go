@@ -53,35 +53,46 @@ var segmentLabelMap = map[string]string{
 	"local":    "LCL",
 	"this":     "THIS",
 	"that":     "THAT",
+	"temp":     "R5",
 }
 
 func memoryPush(segment string, index int) string {
-	label := segmentLabelMap[segment]
-	return getSegment(label, index) + push()
+	label, comp := parseSegment(segment)
+	return getSegment(label, index, comp) + push()
 }
 
 func memoryPop(segment string, index int) string {
-	label := segmentLabelMap[segment]
-	return setAddress(label, index) + pop("M") + setSegment()
+	label, comp := parseSegment(segment)
+	return setAddress(label, index, comp) + pop("M") + setSegment()
 }
 
-func getSegment(label string, index int) string {
+func parseSegment(segment string) (label, comp string) {
+	label = segmentLabelMap[segment]
+	if segment == "temp" {
+		comp = "A+D"
+	} else {
+		comp = "M+D"
+	}
+	return label, comp
+}
+
+func getSegment(label string, index int, comp string) string {
 	return fmt.Sprintf(`@%d
 D=A
 @%s
-A=M+D
+A=%s
 D=M
-`, index, label)
+`, index, label, comp)
 }
 
-func setAddress(label string, index int) string {
+func setAddress(label string, index int, comp string) string {
 	return fmt.Sprintf(`@%d
 D=A
 @%s
-D=M+D
+D=%s
 @R13
 M=D
-`, index, label)
+`, index, label, comp)
 }
 
 func setSegment() string {
