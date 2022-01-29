@@ -34,7 +34,6 @@ type command struct {
 	instruction, arg1, arg2 string
 }
 
-// 新しいParserのインスタンスを生成する。
 func NewParser(file *io.Reader) *parser {
 	scanner := bufio.NewScanner(*file)
 	return &parser{scanner, nil, nil}
@@ -69,7 +68,8 @@ func (p *parser) Advance() error {
 }
 
 var instructionMap = map[string]commandType{
-	"add": C_ARITHMETIC,
+	"add":  C_ARITHMETIC,
+	"push": C_PUSH,
 }
 
 // 現在のVMコマンドの種類を返す。
@@ -93,7 +93,6 @@ func (p parser) Arg2() int {
 	return i
 }
 
-// 与えられた文字列を解析し、commandオブジェクトを返す
 func (p parser) parse(s string) *command {
 	if i := strings.LastIndex(s, "//"); i != -1 { // コメントアウトを除去
 		s = s[:i]
