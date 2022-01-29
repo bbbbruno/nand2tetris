@@ -34,3 +34,17 @@ func TestConvertStackTest(t *testing.T) {
 		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
 	}
 }
+
+func TestConvertBasic(t *testing.T) {
+	vmFile, _ := os.ReadFile(filepath.Join("fixtures", "BasicTest", "BasicTest.vm"))
+	in := bytes.NewBuffer(vmFile)
+	got := bytes.NewBuffer([]byte{})
+	asmFile, _ := os.ReadFile(filepath.Join("fixtures", "BasicTest", "BasicTest.asm"))
+	expected := bytes.NewBuffer(asmFile)
+	err := convert(in, got)
+	if err != nil {
+		t.Errorf("ERROR: %#v", err)
+	} else if got.String() != expected.String() {
+		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
+	}
+}
