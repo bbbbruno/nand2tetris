@@ -20,7 +20,7 @@ M=0
 @SP
 M=M-1
 A=M
-D=D+M
+D=M+D
 M=0
 @SP
 A=M

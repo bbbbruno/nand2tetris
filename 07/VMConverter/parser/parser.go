@@ -29,7 +29,6 @@ func NewParser(file *io.Reader) *parser {
 }
 
 // 次のVMコマンドが存在するかどうかを判定する。
-// WARNING: 怪しい
 func (p *parser) HasMoreCommands() bool {
 	if !p.Scan() {
 		p.nextCommand = nil

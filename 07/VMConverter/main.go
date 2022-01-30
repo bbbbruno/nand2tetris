@@ -2,41 +2,51 @@ package main
 
 import (
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
 	"vmconverter/parser"
 	"vmconverter/translator"
 )
 
-// TODO：ディレクトリを指定できるようにする。ディレクトリ内の全てのファイルを変換する。
 func main() {
-	path := os.Args[1]
-	base := filepath.Base(path)
-	ext := filepath.Ext(path)
-	filename := strings.Replace(base, ext, "", 1)
-	if ext != ".vm" {
-		log.Println("error: not vm file")
-		return
-	}
+	var paths []string
+	filepath.WalkDir(os.Args[1], func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if filepath.Ext(path) == ".vm" {
+			paths = append(paths, path)
+		}
 
-	vmFile, err := os.Open(path)
-	if err != nil {
-		log.Println("error: ", err)
-		return
-	}
+		return nil
+	})
 
-	asmFile, err := os.Create(strings.Replace(path, ext, "", 1) + ".asm")
-	if err != nil {
-		log.Println("error: ", err)
-		return
-	}
-	defer asmFile.Close()
+	for _, path := range paths {
+		filename := strings.Replace(filepath.Base(path), ".vm", "", 1)
+		vmFile, err := os.Open(path)
+		if err != nil {
+			log.Println("error: ", err)
+			return
+		}
 
-	if err := convert(vmFile, asmFile, filename); err != nil {
-		log.Println("error: ", err)
-		return
+		asmFile, err := os.Create(strings.Replace(path, ".vm", "", 1) + ".asm")
+		if err != nil {
+			log.Println("error: ", err)
+			return
+		}
+		defer asmFile.Close()
+
+		if err := convert(vmFile, asmFile, filename); err != nil {
+			log.Println("error: ", err)
+			return
+		}
 	}
 }
 
