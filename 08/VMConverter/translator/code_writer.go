@@ -13,6 +13,9 @@ type Translator interface {
 	SetNewFile(io.Writer, string)
 	WriteArithmethic(string) error
 	WritePushPop(vmcommand.CommandType, string, int) error
+	WriteLabel(string) error
+	WriteGoto(string) error
+	WriteIf(string) error
 	Close() error
 }
 
@@ -93,6 +96,24 @@ func (c *codewriter) WritePushPop(instruction vmcommand.CommandType, segment str
 	default:
 		return nil
 	}
+}
+
+func (c *codewriter) WriteLabel(label string) error {
+	text := defineLabel(label)
+	_, err := fmt.Fprint(c, text)
+	return err
+}
+
+func (c *codewriter) WriteGoto(label string) error {
+	text := goTo(label)
+	_, err := fmt.Fprint(c, text)
+	return err
+}
+
+func (c *codewriter) WriteIf(label string) error {
+	text := pop("M") + ifGoTo(label)
+	_, err := fmt.Fprint(c, text)
+	return err
 }
 
 func (c *codewriter) checkClosed() error {

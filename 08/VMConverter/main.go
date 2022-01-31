@@ -10,11 +10,24 @@ import (
 
 	"vmconverter/parser"
 	"vmconverter/translator"
+	"vmconverter/vmcommand"
 )
 
 func main() {
-	var paths []string
-	filepath.WalkDir(os.Args[1], func(path string, d fs.DirEntry, err error) error {
+	paths, err := findAsmFiles(os.Args[1])
+	if err != nil {
+		log.Println("error: ", err)
+		return
+	}
+
+	if err := convertEachFile(paths); err != nil {
+		log.Println("error: ", err)
+		return
+	}
+}
+
+func findAsmFiles(root string) (paths []string, err error) {
+	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
 			return nil
 		}
@@ -27,27 +40,33 @@ func main() {
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
+	return paths, nil
+}
+
+func convertEachFile(paths []string) error {
 	for _, path := range paths {
-		filename := strings.Replace(filepath.Base(path), ".vm", "", 1)
 		vmFile, err := os.Open(path)
 		if err != nil {
-			log.Println("error: ", err)
-			return
+			return err
 		}
 
 		asmFile, err := os.Create(strings.Replace(path, ".vm", "", 1) + ".asm")
 		if err != nil {
-			log.Println("error: ", err)
-			return
+			return err
 		}
 		defer asmFile.Close()
 
+		filename := strings.Replace(filepath.Base(path), filepath.Ext(path), "", 1)
 		if err := convert(vmFile, asmFile, filename); err != nil {
-			log.Println("error: ", err)
-			return
+			return err
 		}
 	}
+
+	return nil
 }
 
 func convert(r io.Reader, w io.Writer, filename string) error {
@@ -63,8 +82,23 @@ func convert(r io.Reader, w io.Writer, filename string) error {
 				return err
 			}
 		} else {
-			if err := cw.WritePushPop(p.CommandType(), p.Arg1(), p.Arg2()); err != nil {
-				return err
+			switch p.CommandType() {
+			case vmcommand.C_POP, vmcommand.C_PUSH:
+				if err := cw.WritePushPop(p.CommandType(), p.Arg1(), p.Arg2()); err != nil {
+					return err
+				}
+			case vmcommand.C_LABEL:
+				if err := cw.WriteLabel(p.Arg1()); err != nil {
+					return err
+				}
+			case vmcommand.C_GOTO:
+				if err := cw.WriteGoto(p.Arg1()); err != nil {
+					return err
+				}
+			case vmcommand.C_IF:
+				if err := cw.WriteIf(p.Arg1()); err != nil {
+					return err
+				}
 			}
 		}
 	}

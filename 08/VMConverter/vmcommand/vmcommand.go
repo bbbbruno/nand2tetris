@@ -11,10 +11,16 @@ const (
 	C_ARITHMETIC CommandType = iota + 1
 	C_PUSH
 	C_POP
+	C_LABEL
+	C_GOTO
+	C_IF
+	C_FUNCTION
+	C_RETURN
+	C_CALL
 )
 
 var arithmeticCommands = []string{"add", "sub", "neg", "eq", "gt", "lt", "and", "or", "not"}
-var memoryAccessCommands = []string{"", "", "push", "pop"}
+var memoryAccessCommands = []string{"", "", "push", "pop", "label", "goto", "if-goto", "function", "call", "return"}
 
 type VMCommand interface {
 	CommandType() CommandType
