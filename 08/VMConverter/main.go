@@ -2,7 +2,7 @@ package main
 
 import (
 	"io"
-	"io/fs"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,53 +14,65 @@ import (
 )
 
 func main() {
-	paths, err := findAsmFiles(os.Args[1])
+	root := os.Args[1]
+	paths, dest, err := findAsmFiles(root)
 	if err != nil {
 		log.Println("error: ", err)
 		return
 	}
 
-	if err := convertEachFile(paths); err != nil {
+	if len(paths) == 0 {
+		log.Println("no asm file found, skipping...")
+		return
+	}
+
+	if err := convertEachFile(root, paths, dest); err != nil {
 		log.Println("error: ", err)
 		return
 	}
 }
 
-func findAsmFiles(root string) (paths []string, err error) {
-	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() {
-			return nil
-		}
+func findAsmFiles(root string) (paths []string, dest string, err error) {
+	finfo, err := os.Stat(root)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if finfo.IsDir() {
+		files, err := ioutil.ReadDir(root)
 		if err != nil {
-			return err
-		}
-		if filepath.Ext(path) == ".vm" {
-			paths = append(paths, path)
+			return nil, "", err
 		}
 
-		return nil
-	})
-	if err != nil {
-		return nil, err
+		dest = root
+		for _, file := range files {
+			if filepath.Ext(file.Name()) == ".vm" {
+				paths = append(paths, filepath.Join(dest, file.Name()))
+			}
+		}
+	} else {
+		dest = filepath.Dir(root)
+		paths = append(paths, root)
 	}
 
-	return paths, nil
+	return paths, dest, nil
 }
 
-func convertEachFile(paths []string) error {
+func convertEachFile(root string, paths []string, dest string) error {
+	filename := strings.Replace(filepath.Base(root), filepath.Ext(root), "", 1)
+	asmFile, err := os.Create(filepath.Join(dest, filename+".asm"))
+	if err != nil {
+		return err
+	}
+	defer asmFile.Close()
+
 	for _, path := range paths {
 		vmFile, err := os.Open(path)
 		if err != nil {
 			return err
 		}
+		defer vmFile.Close()
 
-		asmFile, err := os.Create(strings.Replace(path, ".vm", "", 1) + ".asm")
-		if err != nil {
-			return err
-		}
-		defer asmFile.Close()
-
-		filename := strings.Replace(filepath.Base(path), filepath.Ext(path), "", 1)
 		if err := convert(vmFile, asmFile, filename); err != nil {
 			return err
 		}
@@ -69,8 +81,10 @@ func convertEachFile(paths []string) error {
 	return nil
 }
 
+var cw = translator.NewCodeWriter()
+
 func convert(r io.Reader, w io.Writer, filename string) error {
-	p, cw := parser.NewParser(&r), translator.NewCodeWriter()
+	p := parser.NewParser(&r)
 
 	cw.SetNewFile(w, filename)
 	for p.HasMoreCommands() {

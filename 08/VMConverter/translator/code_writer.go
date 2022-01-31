@@ -36,9 +36,6 @@ func (c *codewriter) SetNewFile(w io.Writer, filename string) {
 }
 
 func (c *codewriter) Close() error {
-	if _, err := fmt.Fprint(c, end()); err != nil {
-		return err
-	}
 	if err := c.Flush(); err != nil {
 		return err
 	}

@@ -19,10 +19,3 @@ func setStatic(filename string, index int) string {
 M=D
 `, filename, index)
 }
-
-func end() string {
-	return `(END)
-@END
-0;JMP
-`
-}
