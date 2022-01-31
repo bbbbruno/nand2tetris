@@ -81,3 +81,33 @@ func TestConvertStaticTest(t *testing.T) {
 		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
 	}
 }
+
+func TestConvertBasicLoop(t *testing.T) {
+	filename := "BasicLoop"
+	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
+	in := bytes.NewBuffer(vmFile)
+	got := bytes.NewBuffer([]byte{})
+	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
+	expected := bytes.NewBuffer(asmFile)
+	err := convert(in, got, filename)
+	if err != nil {
+		t.Errorf("ERROR: %#v", err)
+	} else if got.String() != expected.String() {
+		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
+	}
+}
+
+func TestConvertFibonacciSeries(t *testing.T) {
+	filename := "FibonacciSeries"
+	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
+	in := bytes.NewBuffer(vmFile)
+	got := bytes.NewBuffer([]byte{})
+	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
+	expected := bytes.NewBuffer(asmFile)
+	err := convert(in, got, filename)
+	if err != nil {
+		t.Errorf("ERROR: %#v", err)
+	} else if got.String() != expected.String() {
+		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
+	}
+}
