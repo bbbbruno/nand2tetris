@@ -20,7 +20,7 @@ const (
 )
 
 var arithmeticCommands = []string{"add", "sub", "neg", "eq", "gt", "lt", "and", "or", "not"}
-var memoryAccessCommands = []string{"", "", "push", "pop", "label", "goto", "if-goto", "function", "call", "return"}
+var memoryAccessCommands = []string{"", "", "push", "pop", "label", "goto", "if-goto", "function", "return", "call"}
 
 type VMCommand interface {
 	CommandType() CommandType

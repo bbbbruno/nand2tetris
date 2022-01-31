@@ -113,6 +113,14 @@ func convert(r io.Reader, w io.Writer, filename string) error {
 				if err := cw.WriteIf(p.Arg1()); err != nil {
 					return err
 				}
+			case vmcommand.C_FUNCTION:
+				if err := cw.WriteFunction(p.Arg1(), p.Arg2()); err != nil {
+					return err
+				}
+			case vmcommand.C_RETURN:
+				if err := cw.WriteReturn(); err != nil {
+					return err
+				}
 			}
 		}
 	}

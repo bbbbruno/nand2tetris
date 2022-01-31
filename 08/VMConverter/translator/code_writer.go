@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"vmconverter/vmcommand"
 )
@@ -16,6 +17,8 @@ type Translator interface {
 	WriteLabel(string) error
 	WriteGoto(string) error
 	WriteIf(string) error
+	WriteFunction(string, int) error
+	WriteReturn() error
 	Close() error
 }
 
@@ -109,6 +112,18 @@ func (c *codewriter) WriteGoto(label string) error {
 
 func (c *codewriter) WriteIf(label string) error {
 	text := pop("M") + ifGoTo(label)
+	_, err := fmt.Fprint(c, text)
+	return err
+}
+
+func (c *codewriter) WriteFunction(name string, numlocals int) error {
+	text := defineFunc(name) + strings.Repeat(push(), numlocals)
+	_, err := fmt.Fprint(c, text)
+	return err
+}
+
+func (c *codewriter) WriteReturn() error {
+	text := execReturn()
 	_, err := fmt.Fprint(c, text)
 	return err
 }
