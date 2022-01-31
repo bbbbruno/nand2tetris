@@ -12,13 +12,15 @@ import (
 
 type Translator interface {
 	SetNewFile(io.Writer, string)
+	WriteInit() error
 	WriteArithmethic(string) error
 	WritePushPop(vmcommand.CommandType, string, int) error
-	WriteLabel(string) error
-	WriteGoto(string) error
-	WriteIf(string) error
+	WriteLabel(string, string) error
+	WriteGoto(string, string) error
+	WriteIf(string, string) error
 	WriteFunction(string, int) error
 	WriteReturn() error
+	WriteCall(string, int) error
 	Close() error
 }
 
@@ -36,18 +38,13 @@ func (c *codewriter) SetNewFile(w io.Writer, filename string) {
 	c.filename = filename
 	c.closed = false
 	c.Writer = bufio.NewWriter(w)
+	c.WriteInit()
 }
 
-func (c *codewriter) Close() error {
-	if err := c.Flush(); err != nil {
-		return err
-	}
-	if c.closed {
-		return errors.New("already closed")
-	}
-
-	c.closed = true
-	return nil
+func (c *codewriter) WriteInit() error {
+	text := setSP() + callFunc("Sys.init", 0)
+	_, err := fmt.Fprint(c, text)
+	return err
 }
 
 var operationMap = map[string]string{
@@ -98,32 +95,38 @@ func (c *codewriter) WritePushPop(instruction vmcommand.CommandType, segment str
 	}
 }
 
-func (c *codewriter) WriteLabel(label string) error {
-	text := defineLabel(label)
+func (c *codewriter) WriteLabel(label string, currentFuncName string) error {
+	text := defineLabel(label, currentFuncName)
 	_, err := fmt.Fprint(c, text)
 	return err
 }
 
-func (c *codewriter) WriteGoto(label string) error {
-	text := goTo(label)
+func (c *codewriter) WriteGoto(label string, currentFuncName string) error {
+	text := goTo(label, currentFuncName)
 	_, err := fmt.Fprint(c, text)
 	return err
 }
 
-func (c *codewriter) WriteIf(label string) error {
-	text := pop("M") + ifGoTo(label)
+func (c *codewriter) WriteIf(label string, currentFuncName string) error {
+	text := pop("M") + ifGoTo(label, currentFuncName)
 	_, err := fmt.Fprint(c, text)
 	return err
 }
 
 func (c *codewriter) WriteFunction(name string, numlocals int) error {
-	text := defineFunc(name) + strings.Repeat(push(), numlocals)
+	text := defineFunc(name) + strings.Repeat(push("0"), numlocals)
 	_, err := fmt.Fprint(c, text)
 	return err
 }
 
 func (c *codewriter) WriteReturn() error {
-	text := execReturn()
+	text := returnFunc()
+	_, err := fmt.Fprint(c, text)
+	return err
+}
+
+func (c *codewriter) WriteCall(name string, numargs int) error {
+	text := callFunc(name, numargs)
 	_, err := fmt.Fprint(c, text)
 	return err
 }
@@ -140,9 +143,9 @@ func (c *codewriter) writePush(segment string, index int) error {
 	var text string
 	switch segment {
 	case "constant":
-		text = getConstant(index) + push()
+		text = getConstant(index) + push("D")
 	case "static":
-		text = getStatic(c.filename, index) + push()
+		text = getStatic(c.filename, index) + push("D")
 	default:
 		text = memoryPush(segment, index)
 	}
@@ -160,4 +163,16 @@ func (c *codewriter) writePop(segment string, index int) error {
 	}
 	_, err := fmt.Fprint(c, text)
 	return err
+}
+
+func (c *codewriter) Close() error {
+	if err := c.Flush(); err != nil {
+		return err
+	}
+	if c.closed {
+		return errors.New("already closed")
+	}
+
+	c.closed = true
+	return nil
 }

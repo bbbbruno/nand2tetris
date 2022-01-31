@@ -1,13 +1,24 @@
 package translator
 
-import "fmt"
+import (
+	"fmt"
+	"math/rand"
+)
+
+func setSP() string {
+	return `@256
+D=A
+@SP
+M=D
+`
+}
 
 func defineFunc(name string) string {
 	return fmt.Sprintf(`(%s)
 `, name)
 }
 
-func execReturn() string {
+func returnFunc() string {
 	return `@LCL
 D=M
 @R13
@@ -68,4 +79,59 @@ M=0
 A=D
 0;JMP
 `
+}
+
+func callFunc(name string, numargs int) string {
+	label := rand.Intn(1000000)
+	return fmt.Sprintf(`@RETURN%d
+D=A
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@LCL
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@ARG
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@THIS
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@THAT
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@%d
+D=A
+@5
+D=A+D
+@SP
+D=M-D
+@ARG
+M=D
+@SP
+D=M
+@LCL
+M=D
+@%s
+0;JMP
+(RETURN%d)
+`, label, numargs, name, label)
 }

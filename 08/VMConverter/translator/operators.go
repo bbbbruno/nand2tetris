@@ -5,13 +5,13 @@ import (
 	"math/rand"
 )
 
-func push() string {
-	return `@SP
+func push(comp string) string {
+	return fmt.Sprintf(`@SP
 A=M
-M=D
+M=%s
 @SP
 M=M+1
-`
+`, comp)
 }
 
 func pop(comp string) string {
@@ -24,15 +24,15 @@ M=0
 }
 
 func operateDouble(comp string) string {
-	return pop("M") + pop(comp) + push()
+	return pop("M") + pop(comp) + push("D")
 }
 
 func operateSingle(comp string) string {
-	return pop(comp) + push()
+	return pop(comp) + push("D")
 }
 
 func operateCompare(jump string) string {
-	return pop("M") + pop("M-D") + compare(jump) + push()
+	return pop("M") + pop("M-D") + compare(jump) + push("D")
 }
 
 func compare(jump string) string {

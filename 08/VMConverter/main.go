@@ -59,14 +59,15 @@ func findAsmFiles(root string) (paths []string, dest string, err error) {
 }
 
 func convertEachFile(root string, paths []string, dest string) error {
-	filename := strings.Replace(filepath.Base(root), filepath.Ext(root), "", 1)
-	asmFile, err := os.Create(filepath.Join(dest, filename+".asm"))
+	dirname := strings.Replace(filepath.Base(root), filepath.Ext(root), "", 1)
+	asmFile, err := os.Create(filepath.Join(dest, dirname+".asm"))
 	if err != nil {
 		return err
 	}
 	defer asmFile.Close()
 
 	for _, path := range paths {
+		filename := strings.Replace(filepath.Base(path), filepath.Ext(path), "", 1)
 		vmFile, err := os.Open(path)
 		if err != nil {
 			return err
@@ -102,15 +103,15 @@ func convert(r io.Reader, w io.Writer, filename string) error {
 					return err
 				}
 			case vmcommand.C_LABEL:
-				if err := cw.WriteLabel(p.Arg1()); err != nil {
+				if err := cw.WriteLabel(p.Arg1(), p.CurrentFuncName); err != nil {
 					return err
 				}
 			case vmcommand.C_GOTO:
-				if err := cw.WriteGoto(p.Arg1()); err != nil {
+				if err := cw.WriteGoto(p.Arg1(), p.CurrentFuncName); err != nil {
 					return err
 				}
 			case vmcommand.C_IF:
-				if err := cw.WriteIf(p.Arg1()); err != nil {
+				if err := cw.WriteIf(p.Arg1(), p.CurrentFuncName); err != nil {
 					return err
 				}
 			case vmcommand.C_FUNCTION:
@@ -119,6 +120,10 @@ func convert(r io.Reader, w io.Writer, filename string) error {
 				}
 			case vmcommand.C_RETURN:
 				if err := cw.WriteReturn(); err != nil {
+					return err
+				}
+			case vmcommand.C_CALL:
+				if err := cw.WriteCall(p.Arg1(), p.Arg2()); err != nil {
 					return err
 				}
 			}

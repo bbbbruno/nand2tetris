@@ -13,7 +13,7 @@ var segmentLabelMap = map[string]string{
 
 func memoryPush(segment string, index int) string {
 	label, comp := parseSegment(segment)
-	return getSegment(label, index, comp) + push()
+	return getSegment(label, index, comp) + push("D")
 }
 
 func memoryPop(segment string, index int) string {

@@ -20,12 +20,13 @@ type nextCommand vmcommand.VMCommand
 type parser struct {
 	*bufio.Scanner
 	currentCommand
-	nextCommand nextCommand
+	nextCommand     nextCommand
+	CurrentFuncName string
 }
 
 func NewParser(file *io.Reader) *parser {
 	scanner := bufio.NewScanner(*file)
-	return &parser{scanner, nil, nil}
+	return &parser{scanner, nil, nil, ""}
 }
 
 // 次のVMコマンドが存在するかどうかを判定する。
@@ -42,13 +43,15 @@ func (p *parser) HasMoreCommands() bool {
 
 	p.nextCommand = command
 	return true
-
 }
 
 // 次のVMコマンドを読み、それを現在のVMコマンドとする。
 func (p *parser) Advance() error {
 	if p.nextCommand == nil {
 		return errors.New("no more commands")
+	}
+	if p.nextCommand.CommandType() == vmcommand.C_FUNCTION {
+		p.CurrentFuncName = p.nextCommand.Arg1()
 	}
 
 	p.currentCommand = p.nextCommand
