@@ -24,8 +24,8 @@ type parser struct {
 	CurrentFuncName string
 }
 
-func NewParser(file *io.Reader) *parser {
-	scanner := bufio.NewScanner(*file)
+func NewParser(file io.Reader) *parser {
+	scanner := bufio.NewScanner(file)
 	return &parser{scanner, nil, nil, ""}
 }
 

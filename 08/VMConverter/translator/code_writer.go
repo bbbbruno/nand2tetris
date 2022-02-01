@@ -11,7 +11,7 @@ import (
 )
 
 type Translator interface {
-	SetNewFile(io.Writer, string)
+	SetFileName(string)
 	WriteInit() error
 	WriteArithmethic(string) error
 	WritePushPop(vmcommand.CommandType, string, int) error
@@ -30,15 +30,15 @@ type codewriter struct {
 	closed   bool
 }
 
-func NewCodeWriter() Translator {
-	return &codewriter{}
+func NewCodeWriter(w io.Writer) Translator {
+	b := bufio.NewWriter(w)
+	c := &codewriter{b, "", false}
+	c.WriteInit()
+	return c
 }
 
-func (c *codewriter) SetNewFile(w io.Writer, filename string) {
+func (c *codewriter) SetFileName(filename string) {
 	c.filename = filename
-	c.closed = false
-	c.Writer = bufio.NewWriter(w)
-	c.WriteInit()
 }
 
 func (c *codewriter) WriteInit() error {

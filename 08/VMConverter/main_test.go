@@ -2,19 +2,20 @@ package main
 
 import (
 	"bytes"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-func TestConvertSimpleAdd(t *testing.T) {
-	filename := "SimpleAdd"
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
-	in := bytes.NewBuffer(vmFile)
-	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
+func execTest(t *testing.T, dirname string) {
+	rand.Seed(1)
+	root := filepath.Join("fixtures", dirname)
+	paths, _, _ := FindVmFiles(root)
+	got := bytes.NewBuffer(make([]byte, 0))
+	asmFile, _ := os.ReadFile(filepath.Join(root, dirname+".asm"))
 	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got, filename)
+	err := VMConvert(paths, got)
 	if err != nil {
 		t.Errorf("ERROR: %#v", err)
 	} else if got.String() != expected.String() {
@@ -22,107 +23,14 @@ func TestConvertSimpleAdd(t *testing.T) {
 	}
 }
 
-func TestConvertStackTest(t *testing.T) {
-	filename := "StackTest"
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
-	in := bytes.NewBuffer(vmFile)
-	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
-	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got, filename)
-	if err != nil {
-		t.Errorf("ERROR: %#v", err)
-	} else if got.String() != expected.String() {
-		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
-	}
+func TestConvertFibonacciElement(t *testing.T) {
+	execTest(t, "FibonacciElement")
 }
 
-func TestConvertBasicTest(t *testing.T) {
-	filename := "BasicTest"
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
-	in := bytes.NewBuffer(vmFile)
-	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
-	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got, filename)
-	if err != nil {
-		t.Errorf("ERROR: %#v", err)
-	} else if got.String() != expected.String() {
-		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
-	}
+func TestConvertNestedCall(t *testing.T) {
+	execTest(t, "NestedCall")
 }
 
-func TestConvertPointerTest(t *testing.T) {
-	filename := "PointerTest"
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
-	in := bytes.NewBuffer(vmFile)
-	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
-	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got, filename)
-	if err != nil {
-		t.Errorf("ERROR: %#v", err)
-	} else if got.String() != expected.String() {
-		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
-	}
-}
-
-func TestConvertStaticTest(t *testing.T) {
-	filename := "StaticTest"
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
-	in := bytes.NewBuffer(vmFile)
-	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
-	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got, filename)
-	if err != nil {
-		t.Errorf("ERROR: %#v", err)
-	} else if got.String() != expected.String() {
-		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
-	}
-}
-
-func TestConvertBasicLoop(t *testing.T) {
-	filename := "BasicLoop"
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
-	in := bytes.NewBuffer(vmFile)
-	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
-	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got, filename)
-	if err != nil {
-		t.Errorf("ERROR: %#v", err)
-	} else if got.String() != expected.String() {
-		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
-	}
-}
-
-func TestConvertFibonacciSeries(t *testing.T) {
-	filename := "FibonacciSeries"
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
-	in := bytes.NewBuffer(vmFile)
-	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
-	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got, filename)
-	if err != nil {
-		t.Errorf("ERROR: %#v", err)
-	} else if got.String() != expected.String() {
-		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
-	}
-}
-
-func TestConvertSimpleFunction(t *testing.T) {
-	filename := "SimpleFunction"
-	vmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".vm"))
-	in := bytes.NewBuffer(vmFile)
-	got := bytes.NewBuffer([]byte{})
-	asmFile, _ := os.ReadFile(filepath.Join("fixtures", filename, filename+".asm"))
-	expected := bytes.NewBuffer(asmFile)
-	err := convert(in, got, filename)
-	if err != nil {
-		t.Errorf("ERROR: %#v", err)
-	} else if got.String() != expected.String() {
-		t.Errorf("FAILED: expected %#v, got %#v", expected.String(), got.String())
-	}
+func TestConvertStaticsTest(t *testing.T) {
+	execTest(t, "StaticsTest")
 }
