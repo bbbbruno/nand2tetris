@@ -69,8 +69,9 @@ func TestSkipComments(t *testing.T) {
 		{in: "// initializes sum with 0\nlet sum = 0", nextByte: byte('l')},
 		{in: "/* initializes sum with 0 */let sum = 0", nextByte: byte('l')},
 		{in: `/** initializes
-sum
-with 0 */let sum = 0`, nextByte: byte('l')},
+	* sum
+	* with 0
+	*/let sum = 0`, nextByte: byte('l')},
 	}
 
 	for _, test := range tests {

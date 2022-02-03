@@ -9,6 +9,7 @@ import (
 type Tokenizer interface {
 	HasMoreTokens() bool
 	Advance() error
+	CurrentToken() Token
 }
 
 type tokenizer struct {
@@ -18,7 +19,7 @@ type tokenizer struct {
 	buf          []byte
 }
 
-func NewTokenizer(r io.Reader) Tokenizer {
+func New(r io.Reader) Tokenizer {
 	b := bufio.NewReader(r)
 	return &tokenizer{b, nil, nil, make([]byte, 0)}
 }
@@ -115,6 +116,10 @@ func (tkz *tokenizer) parse() (Token, error) {
 	}
 }
 
+func (tkz *tokenizer) CurrentToken() Token {
+	return tkz.currentToken
+}
+
 // bufを空にする。
 func (tkz *tokenizer) clearBuf() {
 	tkz.buf = []byte{}
@@ -133,11 +138,13 @@ func (tkz *tokenizer) skipComments(b byte) error {
 
 		if nextb == '*' {
 			_, _ = tkz.ReadByte()
-			if _, err := tkz.ReadBytes(delim); err != nil {
-				return err
-			}
-			if _, err := tkz.ReadByte(); err != nil {
-				return err
+			for b != '/' {
+				if _, err := tkz.ReadBytes(delim); err != nil {
+					return err
+				}
+				if b, err = tkz.ReadByte(); err != nil {
+					return err
+				}
 			}
 		} else {
 			if _, err := tkz.ReadBytes(delim); err != nil {
