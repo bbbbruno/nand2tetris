@@ -7,6 +7,11 @@ import (
 	"testing"
 )
 
+func newTokenizer(in string) *tokenizer {
+	r := bufio.NewReader(bytes.NewBufferString(in))
+	return &tokenizer{r, nil, nil, make([]byte, 0)}
+}
+
 func TestParse(t *testing.T) {
 	in := `// (identical to projects/09/Average/Main.jack)
 
@@ -47,8 +52,7 @@ class Main {
 		{INT_CONST, "0"},
 		{SYMBOL, ";"},
 	}
-	r := bufio.NewReader(bytes.NewBufferString(in))
-	tkz := &tokenizer{r, nil, nil, make([]byte, 0)}
+	tkz := newTokenizer(in)
 	for i := 0; tkz.HasMoreTokens(); i++ {
 		tkz.Advance()
 		if !reflect.DeepEqual(tkz.currentToken, want[i]) {
@@ -70,12 +74,11 @@ with 0 */let sum = 0`, nextByte: byte('l')},
 	}
 
 	for _, test := range tests {
-		r := bufio.NewReader(bytes.NewBufferString(test.in))
-		tkr := &tokenizer{r, nil, nil, make([]byte, 0)}
-		_, _ = tkr.Reader.ReadByte()
-		b, _ := tkr.Reader.ReadByte()
-		err := tkr.skipComments(b)
-		nextByte, _ := tkr.Reader.ReadByte()
+		tkz := newTokenizer(test.in)
+		_, _ = tkz.Reader.ReadByte()
+		b, _ := tkz.Reader.ReadByte()
+		err := tkz.skipComments(b)
+		nextByte, _ := tkz.Reader.ReadByte()
 		if err != nil {
 			t.Errorf("ERROR: got %#v", err)
 		} else if nextByte != test.nextByte {
