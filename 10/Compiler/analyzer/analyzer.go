@@ -1,12 +1,12 @@
 package analyzer
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"compiler/engine"
 	"compiler/tokenizer"
 )
 
@@ -42,7 +42,6 @@ func (a *analyzer) Run() error {
 	}
 	defer outFile.Close()
 
-	fmt.Fprintln(outFile, "<tokens>")
 	for _, path := range paths {
 		file, err := os.Open(path)
 		if err != nil {
@@ -51,14 +50,11 @@ func (a *analyzer) Run() error {
 		defer file.Close()
 
 		tkz := tokenizer.New(file)
-		for tkz.HasMoreTokens() {
-			if err := tkz.Advance(); err != nil {
-				return err
-			}
-			fmt.Fprintln(outFile, tkz.CurrentToken().XmlString())
+		eg := engine.New(tkz, outFile)
+		if err := eg.Compile(); err != nil {
+			return err
 		}
 	}
-	fmt.Fprintln(outFile, "</tokens>")
 
 	return nil
 }

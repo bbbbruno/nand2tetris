@@ -8,7 +8,7 @@ import (
 type Token interface {
 	Type() tokentype
 	Content() string
-	XmlString() string
+	String() string
 }
 
 type token struct {
@@ -24,6 +24,6 @@ func (t *token) Content() string {
 	return t.content
 }
 
-func (t *token) XmlString() string {
+func (t *token) String() string {
 	return fmt.Sprintf("<%[1]s> %[2]s </%[1]s>", t.tokentype, html.EscapeString(t.content))
 }

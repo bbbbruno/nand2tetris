@@ -2,13 +2,12 @@ package tokenizer
 
 import (
 	"bufio"
-	"errors"
 	"io"
 )
 
 type Tokenizer interface {
 	HasMoreTokens() bool
-	Advance() error
+	Advance()
 	CurrentToken() Token
 }
 
@@ -36,13 +35,8 @@ func (tkz *tokenizer) HasMoreTokens() bool {
 }
 
 // 次のトークンを現在のトークンにセットする。
-func (tkz *tokenizer) Advance() error {
-	if tkz.nextToken == nil {
-		return errors.New("no more tokens")
-	}
-
+func (tkz *tokenizer) Advance() {
 	tkz.currentToken = tkz.nextToken
-	return nil
 }
 
 // 入力を解析して次のトークンを生成する。
