@@ -16,6 +16,18 @@ const (
 	STRING_CONST
 )
 
+var tokentypes = map[tokentype]string{
+	KEYWORD:      "keyword",
+	SYMBOL:       "symbol",
+	IDENTIFIER:   "identifier",
+	INT_CONST:    "integerConstant",
+	STRING_CONST: "stringConstant",
+}
+
+func (tt tokentype) String() string {
+	return tokentypes[tt]
+}
+
 var keywords = [...]string{
 	"class", "constructor", "function", "method", "field", "static",
 	"var", "int", "char", "boolean", "void",
