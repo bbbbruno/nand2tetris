@@ -49,9 +49,9 @@ func (a *analyzer) Run() error {
 		}
 		defer file.Close()
 
-		tkz := tokenizer.New(file)
-		eg := engine.New(tkz, outFile)
-		if err := eg.Compile(); err != nil {
+		tokenizer := tokenizer.New(file)
+		engine := engine.New(tokenizer, outFile)
+		if err := engine.Compile(); err != nil {
 			return err
 		}
 	}
