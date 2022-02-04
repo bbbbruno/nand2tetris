@@ -36,7 +36,7 @@ func (a *analyzer) Run() error {
 		return err
 	}
 
-	outFile, err := os.Create(filepath.Join(dest, a.name+"T"+".xml"))
+	outFile, err := os.Create(filepath.Join(dest, a.name+".xml"))
 	if err != nil {
 		return err
 	}
