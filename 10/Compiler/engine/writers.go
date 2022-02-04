@@ -80,7 +80,6 @@ func (e *engine) writeHierarchy(s string, open bool) {
 	if open {
 		e.hierarchy++
 	}
-	fmt.Println(text)
 }
 
 func (e *engine) writeToken() {
@@ -89,6 +88,5 @@ func (e *engine) writeToken() {
 	if _, err := fmt.Fprintln(e, text); err != nil {
 		panic(err)
 	}
-	fmt.Println(text)
 	e.advanceToken()
 }
