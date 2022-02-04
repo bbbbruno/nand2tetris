@@ -31,7 +31,7 @@ func (e *engine) writeIdentifier() {
 }
 
 func (e *engine) writeIntConst() {
-	if token := e.currentToken(); token.IsIdentifier() {
+	if token := e.currentToken(); token.IsIntConst() {
 		e.writeToken()
 	} else {
 		panic(errors.New("token is not integer constant"))
@@ -39,7 +39,7 @@ func (e *engine) writeIntConst() {
 }
 
 func (e *engine) writeStringConst() {
-	if token := e.currentToken(); token.IsIdentifier() {
+	if token := e.currentToken(); token.IsStringConst() {
 		e.writeToken()
 	} else {
 		panic(errors.New("token is not string constant"))
