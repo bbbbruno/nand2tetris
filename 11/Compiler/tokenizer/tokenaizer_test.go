@@ -12,6 +12,44 @@ func newTokenizer(in string) *tokenizer {
 	return &tokenizer{r, nil, nil, make([]byte, 0)}
 }
 
+// Advance()とPeek()を実行したときのCurrentToken()の状態をテストする。
+func TestCurrentToken(t *testing.T) {
+	in := `class Test {
+  static boolean test; // test file
+
+  function void test() {
+    return;
+  }
+}`
+	tkz := newTokenizer(in)
+	tkz.Advance()
+	tkz.Advance()
+	tkz.Advance()
+	if token := tkz.CurrentToken(); !token.IsSymbol("{") {
+		t.Errorf("FAILED: expected current token to be %#v, got %#v", "{", token.Content())
+	}
+	tkz.Advance()
+	// Peek()を実行すると次のトークンを先読みして返し、CurrentToken()は変わらない。
+	if token := tkz.Peek(); !token.IsKeyword("boolean") {
+		t.Errorf("FAILED: expected current token to be %#v, got %#v", "boolean", token.Content())
+	} else if token := tkz.CurrentToken(); !token.IsKeyword("static") {
+		t.Errorf("FAILED: expected current token to be %#v, got %#v", "static", token.Content())
+	}
+	// Peek()を何回実行してもそれ以上先へは進まない。
+	if token := tkz.Peek(); !token.IsKeyword("boolean") {
+		t.Errorf("FAILED: expected current token to be %#v, got %#v", "boolean", token.Content())
+	} else if token := tkz.CurrentToken(); !token.IsKeyword("static") {
+		t.Errorf("FAILED: expected current token to be %#v, got %#v", "static", token.Content())
+	}
+	// Advance()を実行するとcurrentToken()が先へ進む。
+	tkz.Advance()
+	if token := tkz.CurrentToken(); !token.IsKeyword("boolean") {
+		t.Errorf("FAILED: expected current token to be %#v, got %#v", "boolean", token.Content())
+	} else if token := tkz.CurrentToken(); !token.IsKeyword("boolean") {
+		t.Errorf("FAILED: expected current token to be %#v, got %#v", "boolean", token.Content())
+	}
+}
+
 func TestParse(t *testing.T) {
 	in := `// (identical to projects/09/Average/Main.jack)
 
@@ -22,7 +60,7 @@ class Main {
 	
 	let length = Keyboard.readInt("HOW MANY NUMBERS? ");
 	let i = 0;`
-	want := []*token{
+	want := []*Token{
 		{KEYWORD, "class"},
 		{IDENTIFIER, "Main"},
 		{SYMBOL, "{"},
@@ -53,7 +91,7 @@ class Main {
 		{SYMBOL, ";"},
 	}
 	tkz := newTokenizer(in)
-	for i := 0; tkz.HasMoreTokens(); i++ {
+	for i := 0; i < len(want)-1; i++ {
 		tkz.Advance()
 		if !reflect.DeepEqual(tkz.currentToken, want[i]) {
 			t.Errorf("FAILED: expected %#v, got %#v", want[i], tkz.currentToken)
@@ -76,10 +114,10 @@ func TestSkipComments(t *testing.T) {
 
 	for _, test := range tests {
 		tkz := newTokenizer(test.in)
-		_, _ = tkz.Reader.ReadByte()
-		b, _ := tkz.Reader.ReadByte()
+		_, _ = tkz.r.ReadByte()
+		b, _ := tkz.r.ReadByte()
 		err := tkz.skipComments(b)
-		nextByte, _ := tkz.Reader.ReadByte()
+		nextByte, _ := tkz.r.ReadByte()
 		if err != nil {
 			t.Errorf("ERROR: got %#v", err)
 		} else if nextByte != test.nextByte {

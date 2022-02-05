@@ -7,7 +7,7 @@ import (
 )
 
 func (e *engine) writeKeyword(keys ...string) {
-	if token := e.currentToken(); token.IsKeyword(keys...) {
+	if token := e.CurrentToken(); token.IsKeyword(keys...) {
 		e.writeToken()
 	} else {
 		panic(fmt.Errorf("token is not expected keyword, expected %v", keys))
@@ -15,7 +15,7 @@ func (e *engine) writeKeyword(keys ...string) {
 }
 
 func (e *engine) writeSymbol(syms ...string) {
-	if token := e.currentToken(); token.IsSymbol(syms...) {
+	if token := e.CurrentToken(); token.IsSymbol(syms...) {
 		e.writeToken()
 	} else {
 		panic(fmt.Errorf("token is not expected symbol, expected %v", syms))
@@ -23,7 +23,7 @@ func (e *engine) writeSymbol(syms ...string) {
 }
 
 func (e *engine) writeIdentifier() {
-	if token := e.currentToken(); token.IsIdentifier() {
+	if token := e.CurrentToken(); token.IsIdentifier() {
 		e.writeToken()
 	} else {
 		panic(errors.New("token is not identifier"))
@@ -31,7 +31,7 @@ func (e *engine) writeIdentifier() {
 }
 
 func (e *engine) writeIntConst() {
-	if token := e.currentToken(); token.IsIntConst() {
+	if token := e.CurrentToken(); token.IsIntConst() {
 		e.writeToken()
 	} else {
 		panic(errors.New("token is not integer constant"))
@@ -39,7 +39,7 @@ func (e *engine) writeIntConst() {
 }
 
 func (e *engine) writeStringConst() {
-	if token := e.currentToken(); token.IsStringConst() {
+	if token := e.CurrentToken(); token.IsStringConst() {
 		e.writeToken()
 	} else {
 		panic(errors.New("token is not string constant"))
@@ -49,7 +49,7 @@ func (e *engine) writeStringConst() {
 var primitiveTypes = []string{"int", "char", "boolean"}
 
 func (e *engine) writeType() {
-	if token := e.currentToken(); token.IsKeyword() {
+	if token := e.CurrentToken(); token.IsKeyword() {
 		e.writeKeyword(primitiveTypes...)
 	} else if token.IsIdentifier() {
 		e.writeIdentifier()
@@ -57,7 +57,7 @@ func (e *engine) writeType() {
 }
 
 func (e *engine) writeKeywordOrType(keys ...string) {
-	if token := e.currentToken(); token.IsKeyword(keys...) {
+	if token := e.CurrentToken(); token.IsKeyword(keys...) {
 		e.writeKeyword(keys...)
 	} else {
 		e.writeType()
@@ -84,9 +84,9 @@ func (e *engine) writeHierarchy(s string, open bool) {
 
 func (e *engine) writeToken() {
 	spaces := strings.Repeat(" ", e.hierarchy*2)
-	text := fmt.Sprintf("%s%s", spaces, e.currentToken())
+	text := fmt.Sprintf("%s%s", spaces, e.CurrentToken())
 	if _, err := fmt.Fprintln(e, text); err != nil {
 		panic(err)
 	}
-	e.advanceToken()
+	e.Advance()
 }

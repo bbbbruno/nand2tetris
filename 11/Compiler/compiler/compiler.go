@@ -10,16 +10,12 @@ import (
 	"jackcompiler/tokenizer"
 )
 
-type Compiler interface {
-	Run() error
-}
-
 type compiler struct {
 	source string
 	name   string
 }
 
-func New(source string) Compiler {
+func New(source string) *compiler {
 	c := &compiler{}
 	c.source = source
 	c.name = strings.Replace(filepath.Base(c.source), filepath.Ext(c.source), "", 1)

@@ -8,19 +8,20 @@ import (
 	"jackcompiler/tokenizer"
 )
 
-type Engine interface {
-	Compile() error
-}
-
 type engine struct {
-	tkz   tokenizer.Tokenizer
-	token tokenizer.Token
+	engineTokenizer
 	*bufio.Writer
 	hierarchy int
 }
 
-func New(tkz tokenizer.Tokenizer, w io.Writer) Engine {
-	return &engine{tkz, nil, bufio.NewWriter(w), 0}
+type engineTokenizer interface {
+	Advance()
+	Peek() *tokenizer.Token
+	CurrentToken() *tokenizer.Token
+}
+
+func New(tkz engineTokenizer, w io.Writer) *engine {
+	return &engine{tkz, bufio.NewWriter(w), 0}
 }
 
 func (e *engine) Compile() (err error) {
@@ -29,7 +30,7 @@ func (e *engine) Compile() (err error) {
 			err = rec.(error)
 		}
 	}()
-	e.advanceToken()
+	e.Advance()
 	e.compileClass()
 	if err := e.Flush(); err != nil {
 		return err
@@ -43,46 +44,16 @@ const (
 	CLOSE = false
 )
 
-func (e *engine) currentToken() tokenizer.Token {
-	if e.token != nil {
-		return e.token
-	}
-	return e.tkz.CurrentToken()
-}
-
-func (e *engine) advanceToken() {
-	if token := e.token; token != nil {
-		e.token = nil
-		return
-	}
-	if e.tkz.HasMoreTokens() {
-		e.tkz.Advance()
-	}
-}
-
-func (e *engine) peekToken() {
-	if token := e.token; token != nil {
-		return
-	}
-	if e.tkz.HasMoreTokens() {
-		e.token = e.currentToken()
-		e.tkz.Advance()
-		return
-	} else {
-		panic(errors.New("no more tokens"))
-	}
-}
-
 func (e *engine) compileClass() {
 	e.writeHierarchy("class", OPEN)
 	defer e.writeHierarchy("class", CLOSE)
 	e.writeKeyword("class")
 	e.writeIdentifier()
 	e.writeSymbol("{")
-	for e.currentToken().IsKeyword("static", "field") {
+	for e.CurrentToken().IsKeyword("static", "field") {
 		e.compileClassVarDec()
 	}
-	for e.currentToken().IsKeyword("constructor", "function", "method") {
+	for e.CurrentToken().IsKeyword("constructor", "function", "method") {
 		e.compileSubroutineDec()
 	}
 	e.writeSymbol("}")
@@ -94,7 +65,7 @@ func (e *engine) compileClassVarDec() {
 	e.writeKeyword("static", "field")
 	e.writeType()
 	e.writeIdentifier()
-	for e.currentToken().IsSymbol(",") {
+	for e.CurrentToken().IsSymbol(",") {
 		e.writeSymbol(",")
 		e.writeIdentifier()
 	}
@@ -116,13 +87,13 @@ func (e *engine) compileSubroutineDec() {
 func (e *engine) compileParameterList() {
 	e.writeHierarchy("parameterList", OPEN)
 	defer e.writeHierarchy("parameterList", CLOSE)
-	if token := e.currentToken(); !token.IsKeyword(primitiveTypes...) && !token.IsIdentifier() {
+	if token := e.CurrentToken(); !token.IsKeyword(primitiveTypes...) && !token.IsIdentifier() {
 		return
 	}
 
 	e.writeType()
 	e.writeIdentifier()
-	for e.currentToken().IsSymbol(",") {
+	for e.CurrentToken().IsSymbol(",") {
 		e.writeSymbol(",")
 		e.writeType()
 		e.writeIdentifier()
@@ -133,7 +104,7 @@ func (e *engine) compileSubroutineBody() {
 	e.writeHierarchy("subroutineBody", OPEN)
 	defer e.writeHierarchy("subroutineBody", CLOSE)
 	e.writeSymbol("{")
-	for e.currentToken().IsKeyword("var") {
+	for e.CurrentToken().IsKeyword("var") {
 		e.compileVarDec()
 	}
 	e.compileStatements()
@@ -146,7 +117,7 @@ func (e *engine) compileVarDec() {
 	e.writeKeyword("var")
 	e.writeType()
 	e.writeIdentifier()
-	for e.currentToken().IsSymbol(",") {
+	for e.CurrentToken().IsSymbol(",") {
 		e.writeSymbol(",")
 		e.writeIdentifier()
 	}
@@ -156,8 +127,8 @@ func (e *engine) compileVarDec() {
 func (e *engine) compileStatements() {
 	e.writeHierarchy("statements", OPEN)
 	defer e.writeHierarchy("statements", CLOSE)
-	for e.currentToken().IsKeyword("let", "if", "while", "do", "return") {
-		token := e.currentToken()
+	for e.CurrentToken().IsKeyword("let", "if", "while", "do", "return") {
+		token := e.CurrentToken()
 		switch true {
 		case token.IsKeyword("let"):
 			e.compileLetStatement()
@@ -180,7 +151,7 @@ func (e *engine) compileLetStatement() {
 	defer e.writeHierarchy("letStatement", CLOSE)
 	e.writeKeyword("let")
 	e.writeIdentifier()
-	if token := e.currentToken(); token.IsSymbol("[") {
+	if token := e.CurrentToken(); token.IsSymbol("[") {
 		e.writeSymbol("[")
 		e.compileExpression()
 		e.writeSymbol("]")
@@ -200,7 +171,7 @@ func (e *engine) compileIfStatement() {
 	e.writeSymbol("{")
 	e.compileStatements()
 	e.writeSymbol("}")
-	if token := e.currentToken(); !token.IsKeyword("else") {
+	if token := e.CurrentToken(); !token.IsKeyword("else") {
 		return
 	}
 	e.writeKeyword("else")
@@ -226,7 +197,7 @@ func (e *engine) compileDoStatement() {
 	defer e.writeHierarchy("doStatement", CLOSE)
 	e.writeKeyword("do")
 	e.writeIdentifier()
-	if token := e.currentToken(); token.IsSymbol("(") {
+	if token := e.CurrentToken(); token.IsSymbol("(") {
 		e.writeSymbol("(")
 		e.compileExpressionList()
 		e.writeSymbol(")")
@@ -246,7 +217,7 @@ func (e *engine) compileReturnStatement() {
 	e.writeHierarchy("returnStatement", OPEN)
 	defer e.writeHierarchy("returnStatement", CLOSE)
 	e.writeKeyword("return")
-	if token := e.currentToken(); token.IsIntConst() || token.IsStringConst() || token.IsKeyword("true", "false", "null", "this") || token.IsIdentifier() || token.IsSymbol("(", "-", "~") {
+	if token := e.CurrentToken(); token.IsIntConst() || token.IsStringConst() || token.IsKeyword("true", "false", "null", "this") || token.IsIdentifier() || token.IsSymbol("(", "-", "~") {
 		e.compileExpression()
 	}
 	e.writeSymbol(";")
@@ -258,7 +229,7 @@ func (e *engine) compileExpression() {
 	e.writeHierarchy("expression", OPEN)
 	defer e.writeHierarchy("expression", CLOSE)
 	e.compileTerm()
-	for e.currentToken().IsSymbol(operators...) {
+	for e.CurrentToken().IsSymbol(operators...) {
 		e.writeSymbol(operators...)
 		e.compileTerm()
 	}
@@ -267,7 +238,7 @@ func (e *engine) compileExpression() {
 func (e *engine) compileTerm() {
 	e.writeHierarchy("term", OPEN)
 	defer e.writeHierarchy("term", CLOSE)
-	token := e.currentToken()
+	token := e.CurrentToken()
 	switch true {
 	case token.IsIntConst():
 		e.writeIntConst()
@@ -283,8 +254,10 @@ func (e *engine) compileTerm() {
 		e.writeSymbol("-", "~")
 		e.compileTerm()
 	case token.IsIdentifier():
-		e.peekToken()
-		nextToken := e.tkz.CurrentToken()
+		nextToken := e.Peek()
+		if nextToken == nil {
+			return
+		}
 		switch true {
 		case nextToken.IsSymbol("["):
 			e.writeIdentifier()
@@ -314,12 +287,12 @@ func (e *engine) compileTerm() {
 func (e *engine) compileExpressionList() {
 	e.writeHierarchy("expressionList", OPEN)
 	defer e.writeHierarchy("expressionList", CLOSE)
-	if token := e.currentToken(); !token.IsIntConst() && !token.IsStringConst() && !token.IsKeyword("true", "false", "null", "this") && !token.IsIdentifier() && !token.IsSymbol("(", "-", "~") {
+	if token := e.CurrentToken(); !token.IsIntConst() && !token.IsStringConst() && !token.IsKeyword("true", "false", "null", "this") && !token.IsIdentifier() && !token.IsSymbol("(", "-", "~") {
 		return
 	}
 
 	e.compileExpression()
-	for e.currentToken().IsSymbol(",") {
+	for e.CurrentToken().IsSymbol(",") {
 		e.writeSymbol(",")
 		e.compileExpression()
 	}

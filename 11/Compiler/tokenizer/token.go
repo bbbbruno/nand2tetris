@@ -5,57 +5,46 @@ import (
 	"html"
 )
 
-type Token interface {
-	Type() tokentype
-	Content() string
-	String() string
-	IsKeyword(...string) bool
-	IsSymbol(...string) bool
-	IsIdentifier() bool
-	IsIntConst() bool
-	IsStringConst() bool
-}
-
-type token struct {
+type Token struct {
 	tokentype tokentype
 	content   string
 }
 
-func (t token) Type() tokentype {
+func (t Token) Type() tokentype {
 	return t.tokentype
 }
 
-func (t token) Content() string {
+func (t Token) Content() string {
 	return t.content
 }
 
-func (t token) String() string {
+func (t Token) String() string {
 	return fmt.Sprintf("<%[1]s> %[2]s </%[1]s>", t.tokentype, html.EscapeString(t.content))
 }
 
-func (t token) IsKeyword(keys ...string) bool {
+func (t Token) IsKeyword(keys ...string) bool {
 	if len(keys) == 0 {
 		return t.tokentype == KEYWORD
 	}
 	return t.tokentype == KEYWORD && contains(keys, t.content)
 }
 
-func (t token) IsSymbol(syms ...string) bool {
+func (t Token) IsSymbol(syms ...string) bool {
 	if len(syms) == 0 {
 		return t.tokentype == SYMBOL
 	}
 	return t.tokentype == SYMBOL && contains(syms, t.content)
 }
 
-func (t token) IsIdentifier() bool {
+func (t Token) IsIdentifier() bool {
 	return t.tokentype == IDENTIFIER
 }
 
-func (t token) IsIntConst() bool {
+func (t Token) IsIntConst() bool {
 	return t.tokentype == INT_CONST
 }
 
-func (t token) IsStringConst() bool {
+func (t Token) IsStringConst() bool {
 	return t.tokentype == STRING_CONST
 }
 
