@@ -8,6 +8,9 @@ import (
 
 func (e *engine) writeKeyword(keys ...string) {
 	if token := e.CurrentToken(); token.IsKeyword(keys...) {
+		if s := token.Content(); s == "static" || s == "field" || s == "var" {
+			e.varBuf[0] = s
+		}
 		e.writeToken()
 	} else {
 		panic(fmt.Errorf("token is not expected keyword, expected %v", keys))
@@ -50,8 +53,10 @@ var primitiveTypes = []string{"int", "char", "boolean"}
 
 func (e *engine) writeType() {
 	if token := e.CurrentToken(); token.IsKeyword() {
+		e.varBuf[1] = token.Content()
 		e.writeKeyword(primitiveTypes...)
 	} else if token.IsIdentifier() {
+		e.varBuf[1] = token.Content()
 		e.writeIdentifier()
 	}
 }
@@ -62,6 +67,11 @@ func (e *engine) writeKeywordOrType(keys ...string) {
 	} else {
 		e.writeType()
 	}
+}
+
+func (e *engine) writeVarName() {
+	e.varBuf[2] = e.CurrentToken().Content()
+	e.writeIdentifier()
 }
 
 func (e *engine) writeHierarchy(s string, open bool) {
@@ -89,4 +99,26 @@ func (e *engine) writeToken() {
 		panic(err)
 	}
 	e.Advance()
+}
+
+func (e *engine) writeVar() {
+	name, symtype, kind := e.varBuf[2], e.varBuf[1], e.varBuf[0]
+	var (
+		sym Symbol
+		err error
+	)
+	if e.scope == CLASS {
+		sym, err = e.ClassTable().Define(name, symtype, kind)
+	} else {
+		sym, err = e.SubroutineTable().Define(name, symtype, kind)
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	spaces := strings.Repeat(" ", e.hierarchy*2)
+	text := fmt.Sprintf("%s%s", spaces, sym)
+	if _, err := fmt.Fprintln(e, text); err != nil {
+		panic(err)
+	}
 }

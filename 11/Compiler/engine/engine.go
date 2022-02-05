@@ -5,23 +5,41 @@ import (
 	"errors"
 	"io"
 
+	"jackcompiler/symtable"
 	"jackcompiler/tokenizer"
 )
 
+type scope bool
+
+const CLASS, SUBROUTINE scope = true, false
+
 type engine struct {
-	engineTokenizer
+	Tokenizer
+	SymbolTable
 	*bufio.Writer
 	hierarchy int
+	varBuf    []string
+	scope     scope
 }
 
-type engineTokenizer interface {
+type Tokenizer interface {
 	Advance()
 	Peek() *tokenizer.Token
 	CurrentToken() *tokenizer.Token
 }
 
-func New(tkz engineTokenizer, w io.Writer) *engine {
-	return &engine{tkz, bufio.NewWriter(w), 0}
+type SymbolTable interface {
+	ClassTable() symtable.Table
+	SubroutineTable() symtable.Table
+	ResetSubroutineTable()
+}
+
+type Symbol interface {
+	String() string
+}
+
+func New(tkz Tokenizer, w io.Writer) *engine {
+	return &engine{tkz, symtable.New(), bufio.NewWriter(w), 0, make([]string, 3), CLASS}
 }
 
 func (e *engine) Compile() (err error) {
@@ -64,15 +82,20 @@ func (e *engine) compileClassVarDec() {
 	defer e.writeHierarchy("classVarDec", CLOSE)
 	e.writeKeyword("static", "field")
 	e.writeType()
-	e.writeIdentifier()
+	e.writeVarName()
+	e.writeVar()
 	for e.CurrentToken().IsSymbol(",") {
 		e.writeSymbol(",")
-		e.writeIdentifier()
+		e.writeVarName()
+		e.writeVar()
 	}
 	e.writeSymbol(";")
 }
 
 func (e *engine) compileSubroutineDec() {
+	e.ResetSubroutineTable()
+	e.scope = SUBROUTINE
+	defer func() { e.scope = CLASS }()
 	e.writeHierarchy("subroutineDec", OPEN)
 	defer e.writeHierarchy("subroutineDec", CLOSE)
 	e.writeKeyword("constructor", "function", "method")
@@ -91,12 +114,15 @@ func (e *engine) compileParameterList() {
 		return
 	}
 
+	e.varBuf[0] = "argument"
 	e.writeType()
-	e.writeIdentifier()
+	e.writeVarName()
+	e.writeVar()
 	for e.CurrentToken().IsSymbol(",") {
 		e.writeSymbol(",")
 		e.writeType()
-		e.writeIdentifier()
+		e.writeVarName()
+		e.writeVar()
 	}
 }
 
