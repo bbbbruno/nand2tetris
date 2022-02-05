@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"compiler/analyzer"
+	"jackcompiler/compiler"
 )
 
 func main() {
-	analyzer := analyzer.New(os.Args[1])
-	if err := analyzer.Run(); err != nil {
+	c := compiler.New(os.Args[1])
+	if err := c.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "ERROR: ", err)
 		return
 	}

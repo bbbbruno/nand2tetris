@@ -2,9 +2,10 @@ package engine
 
 import (
 	"bufio"
-	"compiler/tokenizer"
 	"errors"
 	"io"
+
+	"jackcompiler/tokenizer"
 )
 
 type Engine interface {

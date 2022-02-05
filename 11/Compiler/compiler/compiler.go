@@ -1,4 +1,4 @@
-package analyzer
+package compiler
 
 import (
 	"io/ioutil"
@@ -6,37 +6,37 @@ import (
 	"path/filepath"
 	"strings"
 
-	"compiler/engine"
-	"compiler/tokenizer"
+	"jackcompiler/engine"
+	"jackcompiler/tokenizer"
 )
 
-type Analyzer interface {
+type Compiler interface {
 	Run() error
 }
 
-type analyzer struct {
+type compiler struct {
 	source string
 	name   string
 }
 
-func New(source string) Analyzer {
-	a := &analyzer{}
-	a.source = source
-	a.name = strings.Replace(filepath.Base(a.source), filepath.Ext(a.source), "", 1)
-	return a
+func New(source string) Compiler {
+	c := &compiler{}
+	c.source = source
+	c.name = strings.Replace(filepath.Base(c.source), filepath.Ext(c.source), "", 1)
+	return c
 }
 
-func (a *analyzer) Run() error {
-	paths, err := findPaths(a.source)
+func (c *compiler) Run() error {
+	paths, err := findPaths(c.source)
 	if err != nil {
 		return err
 	}
-	dest, err := getDestPath(a.source)
+	dest, err := getDestPath(c.source)
 	if err != nil {
 		return err
 	}
 
-	outFile, err := os.Create(filepath.Join(dest, a.name+".xml"))
+	outFile, err := os.Create(filepath.Join(dest, c.name+".xml"))
 	if err != nil {
 		return err
 	}
