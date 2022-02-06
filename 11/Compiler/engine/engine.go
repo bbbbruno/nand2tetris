@@ -142,10 +142,12 @@ func (e *engine) compileVarDec() {
 	defer e.writeHierarchy("varDec", CLOSE)
 	e.writeKeyword("var")
 	e.writeType()
-	e.writeIdentifier()
+	e.writeVarName()
+	e.writeVar()
 	for e.CurrentToken().IsSymbol(",") {
 		e.writeSymbol(",")
-		e.writeIdentifier()
+		e.writeVarName()
+		e.writeVar()
 	}
 	e.writeSymbol(";")
 }
