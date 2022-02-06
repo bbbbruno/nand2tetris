@@ -9,7 +9,7 @@ import (
 func (e *engine) writeKeyword(keys ...string) {
 	if token := e.CurrentToken(); token.IsKeyword(keys...) {
 		if s := token.Content(); s == "static" || s == "field" || s == "var" {
-			e.varBuf[0] = s
+			e.varBuf.kind = s
 		}
 		e.writeToken()
 	} else {
@@ -53,10 +53,10 @@ var primitiveTypes = []string{"int", "char", "boolean"}
 
 func (e *engine) writeType() {
 	if token := e.CurrentToken(); token.IsKeyword() {
-		e.varBuf[1] = token.Content()
+		e.varBuf.symtype = token.Content()
 		e.writeKeyword(primitiveTypes...)
 	} else if token.IsIdentifier() {
-		e.varBuf[1] = token.Content()
+		e.varBuf.symtype = token.Content()
 		e.writeIdentifier()
 	}
 }
@@ -70,7 +70,7 @@ func (e *engine) writeKeywordOrType(keys ...string) {
 }
 
 func (e *engine) writeVarName() {
-	e.varBuf[2] = e.CurrentToken().Content()
+	e.varBuf.name = e.CurrentToken().Content()
 	e.writeIdentifier()
 }
 
@@ -101,24 +101,17 @@ func (e *engine) writeToken() {
 	e.Advance()
 }
 
-func (e *engine) writeVar() {
-	name, symtype, kind := e.varBuf[2], e.varBuf[1], e.varBuf[0]
+func (e *engine) addVar() {
 	var (
-		sym Symbol
+		// sym Symbol
 		err error
 	)
 	if e.scope == CLASS {
-		sym, err = e.ClassTable().Define(name, symtype, kind)
+		_, err = e.ClassTable().Define(e.varBuf.name, e.varBuf.symtype, e.varBuf.kind)
 	} else {
-		sym, err = e.SubroutineTable().Define(name, symtype, kind)
+		_, err = e.SubroutineTable().Define(e.varBuf.name, e.varBuf.symtype, e.varBuf.kind)
 	}
 	if err != nil {
-		panic(err)
-	}
-
-	spaces := strings.Repeat(" ", e.hierarchy*2)
-	text := fmt.Sprintf("%s%s", spaces, sym)
-	if _, err := fmt.Fprintln(e, text); err != nil {
 		panic(err)
 	}
 }

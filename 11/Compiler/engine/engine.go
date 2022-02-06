@@ -13,13 +13,15 @@ type scope bool
 
 const CLASS, SUBROUTINE scope = true, false
 
+type varBuf struct{ name, symtype, kind string }
+
 type engine struct {
 	Tokenizer
 	SymbolTable
 	*bufio.Writer
 	hierarchy int
-	varBuf    []string
-	scope     scope
+	varBuf    *varBuf
+	scope
 }
 
 type Tokenizer interface {
@@ -39,7 +41,7 @@ type Symbol interface {
 }
 
 func New(tkz Tokenizer, w io.Writer) *engine {
-	return &engine{tkz, symtable.New(), bufio.NewWriter(w), 0, make([]string, 3), CLASS}
+	return &engine{tkz, symtable.New(), bufio.NewWriter(w), 0, &varBuf{}, CLASS}
 }
 
 func (e *engine) Compile() (err error) {
@@ -83,11 +85,11 @@ func (e *engine) compileClassVarDec() {
 	e.writeKeyword("static", "field")
 	e.writeType()
 	e.writeVarName()
-	e.writeVar()
+	e.addVar()
 	for e.CurrentToken().IsSymbol(",") {
 		e.writeSymbol(",")
 		e.writeVarName()
-		e.writeVar()
+		e.addVar()
 	}
 	e.writeSymbol(";")
 }
@@ -114,15 +116,15 @@ func (e *engine) compileParameterList() {
 		return
 	}
 
-	e.varBuf[0] = "argument"
+	e.varBuf.kind = "argument"
 	e.writeType()
 	e.writeVarName()
-	e.writeVar()
+	e.addVar()
 	for e.CurrentToken().IsSymbol(",") {
 		e.writeSymbol(",")
 		e.writeType()
 		e.writeVarName()
-		e.writeVar()
+		e.addVar()
 	}
 }
 
@@ -143,11 +145,11 @@ func (e *engine) compileVarDec() {
 	e.writeKeyword("var")
 	e.writeType()
 	e.writeVarName()
-	e.writeVar()
+	e.addVar()
 	for e.CurrentToken().IsSymbol(",") {
 		e.writeSymbol(",")
 		e.writeVarName()
-		e.writeVar()
+		e.addVar()
 	}
 	e.writeSymbol(";")
 }
