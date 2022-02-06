@@ -21,7 +21,7 @@ func newEngine() *engine {
 }`)
 	tkz := tokenizer.New(r)
 	b := bufio.NewWriter(defaultBuf)
-	return New(tkz, b)
+	return New("Test", tkz, b)
 }
 
 func TestCompile(t *testing.T) {

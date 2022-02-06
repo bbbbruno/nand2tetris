@@ -32,7 +32,7 @@ func (c *compiler) Run() error {
 		return err
 	}
 
-	outFile, err := os.Create(filepath.Join(dest, c.name+".xml"))
+	outFile, err := os.Create(filepath.Join(dest, c.name+".vm"))
 	if err != nil {
 		return err
 	}
@@ -45,8 +45,9 @@ func (c *compiler) Run() error {
 		}
 		defer file.Close()
 
+		filename := strings.Replace(filepath.Base(path), filepath.Ext(path), "", 1)
 		tokenizer := tokenizer.New(file)
-		engine := engine.New(tokenizer, outFile)
+		engine := engine.New(filename, tokenizer, outFile)
 		if err := engine.Compile(); err != nil {
 			return err
 		}

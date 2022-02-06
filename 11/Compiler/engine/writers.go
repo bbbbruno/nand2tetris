@@ -1,117 +1,57 @@
 package engine
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 )
 
-func (e *engine) writeKeyword(keys ...string) {
-	if token := e.CurrentToken(); token.IsKeyword(keys...) {
-		if s := token.Content(); s == "static" || s == "field" || s == "var" {
-			e.varBuf.kind = s
-		}
-		e.writeToken()
-	} else {
-		panic(fmt.Errorf("token is not expected keyword, expected %v", keys))
+func (e *engine) writeArithmethic(cmd string) error {
+	if _, err := fmt.Fprintln(e, cmd); err != nil {
+		return err
 	}
+
+	return nil
 }
 
-func (e *engine) writeSymbol(syms ...string) {
-	if token := e.CurrentToken(); token.IsSymbol(syms...) {
-		e.writeToken()
-	} else {
-		panic(fmt.Errorf("token is not expected symbol, expected %v", syms))
-	}
-}
-
-func (e *engine) writeIdentifier() {
-	if token := e.CurrentToken(); token.IsIdentifier() {
-		e.writeToken()
-	} else {
-		panic(errors.New("token is not identifier"))
-	}
-}
-
-func (e *engine) writeIntConst() {
-	if token := e.CurrentToken(); token.IsIntConst() {
-		e.writeToken()
-	} else {
-		panic(errors.New("token is not integer constant"))
-	}
-}
-
-func (e *engine) writeStringConst() {
-	if token := e.CurrentToken(); token.IsStringConst() {
-		e.writeToken()
-	} else {
-		panic(errors.New("token is not string constant"))
-	}
-}
-
-var primitiveTypes = []string{"int", "char", "boolean"}
-
-func (e *engine) writeType() {
-	if token := e.CurrentToken(); token.IsKeyword() {
-		e.varBuf.symtype = token.Content()
-		e.writeKeyword(primitiveTypes...)
-	} else if token.IsIdentifier() {
-		e.varBuf.symtype = token.Content()
-		e.writeIdentifier()
-	}
-}
-
-func (e *engine) writeKeywordOrType(keys ...string) {
-	if token := e.CurrentToken(); token.IsKeyword(keys...) {
-		e.writeKeyword(keys...)
-	} else {
-		e.writeType()
-	}
-}
-
-func (e *engine) writeVarName() {
-	e.varBuf.name = e.CurrentToken().Content()
-	e.writeIdentifier()
-}
-
-func (e *engine) writeHierarchy(s string, open bool) {
-	if !open {
-		e.hierarchy--
-	}
-	spaces := strings.Repeat(" ", e.hierarchy*2)
-	tag := "<" + s + ">"
-	if !open {
-		tag = tag[:1] + "/" + tag[1:]
-	}
-	text := fmt.Sprintf("%s%s", spaces, tag)
+func (e *engine) writePush(segment string, index int) error {
+	text := fmt.Sprintf("push %s %d", segment, index)
 	if _, err := fmt.Fprintln(e, text); err != nil {
-		panic(err)
+		return err
 	}
-	if open {
-		e.hierarchy++
-	}
+
+	return nil
 }
 
-func (e *engine) writeToken() {
-	spaces := strings.Repeat(" ", e.hierarchy*2)
-	text := fmt.Sprintf("%s%s", spaces, e.CurrentToken())
+func (e *engine) writePop(segment string, index int) error {
+	text := fmt.Sprintf("pop %s %d", segment, index)
 	if _, err := fmt.Fprintln(e, text); err != nil {
-		panic(err)
+		return err
 	}
-	e.Advance()
+
+	return nil
 }
 
-func (e *engine) addVar() {
-	var (
-		// sym Symbol
-		err error
-	)
-	if e.scope == CLASS {
-		_, err = e.ClassTable().Define(e.varBuf.name, e.varBuf.symtype, e.varBuf.kind)
-	} else {
-		_, err = e.SubroutineTable().Define(e.varBuf.name, e.varBuf.symtype, e.varBuf.kind)
+func (e *engine) writeFunction(receiver string, name string, nLocals int) error {
+	text := fmt.Sprintf("function %s.%s %d", receiver, name, nLocals)
+	if _, err := fmt.Fprintln(e, text); err != nil {
+		return err
 	}
-	if err != nil {
-		panic(err)
+
+	return nil
+}
+
+func (e *engine) writeCall(receiver string, name string, nArgs int) error {
+	text := fmt.Sprintf("call %s.%s %d", receiver, name, nArgs)
+	if _, err := fmt.Fprintln(e, text); err != nil {
+		return err
 	}
+
+	return nil
+}
+
+func (e *engine) writeReturn() error {
+	if _, err := fmt.Fprintln(e, "return"); err != nil {
+		return err
+	}
+
+	return nil
 }

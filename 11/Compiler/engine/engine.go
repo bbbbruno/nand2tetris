@@ -13,14 +13,21 @@ type scope bool
 
 const CLASS, SUBROUTINE scope = true, false
 
-type varBuf struct{ name, symtype, kind string }
+type buf struct {
+	subroutine      struct{ returnval, receiver, name, kind string }
+	variable        struct{ name, symtype, kind string }
+	term            struct{ value, kind string }
+	expression      struct{ operator, nextoperator string }
+	expressionCount int
+}
 
 type engine struct {
+	className string
 	Tokenizer
 	SymbolTable
 	*bufio.Writer
 	hierarchy int
-	varBuf    *varBuf
+	buf
 	scope
 }
 
@@ -40,8 +47,8 @@ type Symbol interface {
 	String() string
 }
 
-func New(tkz Tokenizer, w io.Writer) *engine {
-	return &engine{tkz, symtable.New(), bufio.NewWriter(w), 0, &varBuf{}, CLASS}
+func New(className string, tkz Tokenizer, w io.Writer) *engine {
+	return &engine{className, tkz, symtable.New(), bufio.NewWriter(w), 0, buf{}, CLASS}
 }
 
 func (e *engine) Compile() (err error) {
@@ -65,98 +72,79 @@ const (
 )
 
 func (e *engine) compileClass() {
-	e.writeHierarchy("class", OPEN)
-	defer e.writeHierarchy("class", CLOSE)
-	e.writeKeyword("class")
-	e.writeIdentifier()
-	e.writeSymbol("{")
+	e.validateKeyword("class")
+	e.validateIdentifier()
+	e.validateSymbol("{")
 	for e.CurrentToken().IsKeyword("static", "field") {
 		e.compileClassVarDec()
 	}
 	for e.CurrentToken().IsKeyword("constructor", "function", "method") {
 		e.compileSubroutineDec()
 	}
-	e.writeSymbol("}")
+	e.validateSymbol("}")
 }
 
 func (e *engine) compileClassVarDec() {
-	e.writeHierarchy("classVarDec", OPEN)
-	defer e.writeHierarchy("classVarDec", CLOSE)
-	e.writeKeyword("static", "field")
-	e.writeType()
-	e.writeVarName()
-	e.addVar()
+	e.validateKeyword("static", "field")
+	e.validateType()
+	e.validateVarName()
 	for e.CurrentToken().IsSymbol(",") {
-		e.writeSymbol(",")
-		e.writeVarName()
-		e.addVar()
+		e.validateSymbol(",")
+		e.validateVarName()
 	}
-	e.writeSymbol(";")
+	e.validateSymbol(";")
 }
 
 func (e *engine) compileSubroutineDec() {
 	e.ResetSubroutineTable()
 	e.scope = SUBROUTINE
 	defer func() { e.scope = CLASS }()
-	e.writeHierarchy("subroutineDec", OPEN)
-	defer e.writeHierarchy("subroutineDec", CLOSE)
-	e.writeKeyword("constructor", "function", "method")
-	e.writeKeywordOrType("void")
-	e.writeIdentifier()
-	e.writeSymbol("(")
+	e.validateKeyword("constructor", "function", "method")
+	e.validateKeywordOrType("void")
+	e.validateSubroutineName()
+	e.validateSymbol("(")
 	e.compileParameterList()
-	e.writeSymbol(")")
+	e.validateSymbol(")")
+	e.declareSubroutine()
 	e.compileSubroutineBody()
 }
 
 func (e *engine) compileParameterList() {
-	e.writeHierarchy("parameterList", OPEN)
-	defer e.writeHierarchy("parameterList", CLOSE)
 	if token := e.CurrentToken(); !token.IsKeyword(primitiveTypes...) && !token.IsIdentifier() {
 		return
 	}
 
-	e.varBuf.kind = "argument"
-	e.writeType()
-	e.writeVarName()
-	e.addVar()
+	e.variable.kind = "argument"
+	e.validateType()
+	e.validateVarName()
 	for e.CurrentToken().IsSymbol(",") {
-		e.writeSymbol(",")
-		e.writeType()
-		e.writeVarName()
-		e.addVar()
+		e.validateSymbol(",")
+		e.validateType()
+		e.validateVarName()
 	}
 }
 
 func (e *engine) compileSubroutineBody() {
-	e.writeHierarchy("subroutineBody", OPEN)
-	defer e.writeHierarchy("subroutineBody", CLOSE)
-	e.writeSymbol("{")
+	e.validateSymbol("{")
 	for e.CurrentToken().IsKeyword("var") {
 		e.compileVarDec()
 	}
 	e.compileStatements()
-	e.writeSymbol("}")
+	e.validateSymbol("}")
 }
 
 func (e *engine) compileVarDec() {
-	e.writeHierarchy("varDec", OPEN)
-	defer e.writeHierarchy("varDec", CLOSE)
-	e.writeKeyword("var")
-	e.writeType()
-	e.writeVarName()
-	e.addVar()
+	e.validateKeyword("var")
+	e.validateType()
+	e.validateVarName()
 	for e.CurrentToken().IsSymbol(",") {
-		e.writeSymbol(",")
-		e.writeVarName()
-		e.addVar()
+		e.validateSymbol(",")
+		e.validateVarName()
 	}
-	e.writeSymbol(";")
+	e.validateSymbol(";")
 }
 
 func (e *engine) compileStatements() {
-	e.writeHierarchy("statements", OPEN)
-	defer e.writeHierarchy("statements", CLOSE)
 	for e.CurrentToken().IsKeyword("let", "if", "while", "do", "return") {
 		token := e.CurrentToken()
 		switch true {
@@ -177,111 +165,115 @@ func (e *engine) compileStatements() {
 }
 
 func (e *engine) compileLetStatement() {
-	e.writeHierarchy("letStatement", OPEN)
-	defer e.writeHierarchy("letStatement", CLOSE)
-	e.writeKeyword("let")
-	e.writeIdentifier()
+	e.validateKeyword("let")
+	e.validateIdentifier()
 	if token := e.CurrentToken(); token.IsSymbol("[") {
-		e.writeSymbol("[")
+		e.validateSymbol("[")
 		e.compileExpression()
-		e.writeSymbol("]")
+		e.validateSymbol("]")
 	}
-	e.writeSymbol("=")
+	e.validateSymbol("=")
 	e.compileExpression()
-	e.writeSymbol(";")
+	e.validateSymbol(";")
 }
 
 func (e *engine) compileIfStatement() {
-	e.writeHierarchy("ifStatement", OPEN)
-	defer e.writeHierarchy("ifStatement", CLOSE)
-	e.writeKeyword("if")
-	e.writeSymbol("(")
+	e.validateKeyword("if")
+	e.validateSymbol("(")
 	e.compileExpression()
-	e.writeSymbol(")")
-	e.writeSymbol("{")
+	e.validateSymbol(")")
+	e.validateSymbol("{")
 	e.compileStatements()
-	e.writeSymbol("}")
+	e.validateSymbol("}")
 	if token := e.CurrentToken(); !token.IsKeyword("else") {
 		return
 	}
-	e.writeKeyword("else")
-	e.writeSymbol("{")
+	e.validateKeyword("else")
+	e.validateSymbol("{")
 	e.compileStatements()
-	e.writeSymbol("}")
+	e.validateSymbol("}")
 }
 
 func (e *engine) compileWhileStatement() {
-	e.writeHierarchy("whileStatement", OPEN)
-	defer e.writeHierarchy("whileStatement", CLOSE)
-	e.writeKeyword("while")
-	e.writeSymbol("(")
+	e.validateKeyword("while")
+	e.validateSymbol("(")
 	e.compileExpression()
-	e.writeSymbol(")")
-	e.writeSymbol("{")
+	e.validateSymbol(")")
+	e.validateSymbol("{")
 	e.compileStatements()
-	e.writeSymbol("}")
+	e.validateSymbol("}")
 }
 
 func (e *engine) compileDoStatement() {
-	e.writeHierarchy("doStatement", OPEN)
-	defer e.writeHierarchy("doStatement", CLOSE)
-	e.writeKeyword("do")
-	e.writeIdentifier()
+	e.validateKeyword("do")
+	e.validateSubroutineName()
 	if token := e.CurrentToken(); token.IsSymbol("(") {
-		e.writeSymbol("(")
+		e.validateSymbol("(")
 		e.compileExpressionList()
-		e.writeSymbol(")")
+		e.validateSymbol(")")
 	} else if token.IsSymbol(".") {
-		e.writeSymbol(".")
-		e.writeIdentifier()
-		e.writeSymbol("(")
+		e.validateSymbol(".")
+		e.validateReceiverName()
+		e.validateSymbol("(")
 		e.compileExpressionList()
-		e.writeSymbol(")")
+		e.validateSymbol(")")
 	} else {
 		panic(errors.New("token is not valid as do statement"))
 	}
-	e.writeSymbol(";")
+	e.validateSymbol(";")
+	e.doStatment()
 }
 
 func (e *engine) compileReturnStatement() {
-	e.writeHierarchy("returnStatement", OPEN)
-	defer e.writeHierarchy("returnStatement", CLOSE)
-	e.writeKeyword("return")
+	e.validateKeyword("return")
 	if token := e.CurrentToken(); token.IsIntConst() || token.IsStringConst() || token.IsKeyword("true", "false", "null", "this") || token.IsIdentifier() || token.IsSymbol("(", "-", "~") {
 		e.compileExpression()
 	}
-	e.writeSymbol(";")
+	e.validateSymbol(";")
+	e.returnStatment()
+}
+
+func (e *engine) compileExpressionList() {
+	if token := e.CurrentToken(); !token.IsIntConst() && !token.IsStringConst() && !token.IsKeyword("true", "false", "null", "this") && !token.IsIdentifier() && !token.IsSymbol("(", "-", "~") {
+		return
+	}
+
+	e.expressionCount++
+	e.compileExpression()
+	for e.CurrentToken().IsSymbol(",") {
+		e.expressionCount++
+		e.validateSymbol(",")
+		e.compileExpression()
+	}
 }
 
 var operators = []string{"+", "-", "*", "/", "&", "|", "<", ">", "="}
 
 func (e *engine) compileExpression() {
-	e.writeHierarchy("expression", OPEN)
-	defer e.writeHierarchy("expression", CLOSE)
 	e.compileTerm()
 	for e.CurrentToken().IsSymbol(operators...) {
-		e.writeSymbol(operators...)
+		e.validateOperator(operators...)
 		e.compileTerm()
+		e.calcExpression()
 	}
 }
 
 func (e *engine) compileTerm() {
-	e.writeHierarchy("term", OPEN)
-	defer e.writeHierarchy("term", CLOSE)
 	token := e.CurrentToken()
 	switch true {
 	case token.IsIntConst():
-		e.writeIntConst()
+		e.validateIntConst()
+		e.intTerm()
 	case token.IsStringConst():
-		e.writeStringConst()
+		e.validateStringConst()
 	case token.IsKeyword("true", "false", "null", "this"):
-		e.writeKeyword("true", "false", "null", "this")
+		e.validateKeyword("true", "false", "null", "this")
 	case token.IsSymbol("("):
-		e.writeSymbol("(")
+		e.validateSymbol("(")
 		e.compileExpression()
-		e.writeSymbol(")")
+		e.validateSymbol(")")
 	case token.IsSymbol("-", "~"):
-		e.writeSymbol("-", "~")
+		e.validateSymbol("-", "~")
 		e.compileTerm()
 	case token.IsIdentifier():
 		nextToken := e.Peek()
@@ -290,40 +282,26 @@ func (e *engine) compileTerm() {
 		}
 		switch true {
 		case nextToken.IsSymbol("["):
-			e.writeIdentifier()
-			e.writeSymbol("[")
+			e.validateIdentifier()
+			e.validateSymbol("[")
 			e.compileExpression()
-			e.writeSymbol("]")
+			e.validateSymbol("]")
 		case nextToken.IsSymbol("("):
-			e.writeIdentifier()
-			e.writeSymbol("(")
+			e.validateIdentifier()
+			e.validateSymbol("(")
 			e.compileExpressionList()
-			e.writeSymbol(")")
+			e.validateSymbol(")")
 		case nextToken.IsSymbol("."):
-			e.writeIdentifier()
-			e.writeSymbol(".")
-			e.writeIdentifier()
-			e.writeSymbol("(")
+			e.validateIdentifier()
+			e.validateSymbol(".")
+			e.validateIdentifier()
+			e.validateSymbol("(")
 			e.compileExpressionList()
-			e.writeSymbol(")")
+			e.validateSymbol(")")
 		default:
-			e.writeIdentifier()
+			e.validateIdentifier()
 		}
 	default:
 		panic(errors.New("token is not valid as term"))
-	}
-}
-
-func (e *engine) compileExpressionList() {
-	e.writeHierarchy("expressionList", OPEN)
-	defer e.writeHierarchy("expressionList", CLOSE)
-	if token := e.CurrentToken(); !token.IsIntConst() && !token.IsStringConst() && !token.IsKeyword("true", "false", "null", "this") && !token.IsIdentifier() && !token.IsSymbol("(", "-", "~") {
-		return
-	}
-
-	e.compileExpression()
-	for e.CurrentToken().IsSymbol(",") {
-		e.writeSymbol(",")
-		e.compileExpression()
 	}
 }

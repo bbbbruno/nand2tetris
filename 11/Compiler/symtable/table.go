@@ -6,16 +6,22 @@ import (
 
 type Table interface {
 	Define(name, symtype, kind string) (*symbol, error)
+	VarCount(kind string) int
 }
 
 type table struct {
 	symbols []*symbol
 }
 
-func (t *table) varCount(kind kind) int {
+func (t *table) VarCount(kind string) int {
+	k, ok := kinds[kind]
+	if !ok {
+		return 0
+	}
+
 	arr := make([]*symbol, 0)
 	for _, v := range t.symbols {
-		if v.kind == kind {
+		if v.kind == k {
 			arr = append(arr, v)
 		}
 	}
@@ -43,7 +49,7 @@ func (t *classTable) Define(name string, symtype string, kind string) (*symbol, 
 
 	k := kinds[kind]
 	if k == STATIC || k == FIELD {
-		sym := &symbol{name, symtype, k, t.varCount(k)}
+		sym := &symbol{name, symtype, k, t.VarCount(kind)}
 		t.symbols = append(t.symbols, sym)
 		return sym, nil
 	} else {
@@ -62,7 +68,7 @@ func (t *subroutineTable) Define(name string, symtype string, kind string) (*sym
 
 	k := kinds[kind]
 	if k == ARG || k == VAR {
-		sym := &symbol{name, symtype, k, t.varCount(k)}
+		sym := &symbol{name, symtype, k, t.VarCount(kind)}
 		t.symbols = append(t.symbols, sym)
 		return sym, nil
 	} else {
