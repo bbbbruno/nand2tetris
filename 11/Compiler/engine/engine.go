@@ -16,9 +16,12 @@ const CLASS, SUBROUTINE scope = true, false
 type buf struct {
 	subroutine      struct{ returnval, receiver, name, kind string }
 	variable        struct{ name, symtype, kind string }
+	sym             *symtable.Symbol
 	term            struct{ value, kind string }
 	expression      struct{ operator, nextoperator string }
 	expressionCount int
+	whileCount      int
+	ifCount         int
 }
 
 type engine struct {
@@ -27,7 +30,7 @@ type engine struct {
 	SymbolTable
 	*bufio.Writer
 	hierarchy int
-	buf
+	*buf
 	scope
 }
 
@@ -43,12 +46,8 @@ type SymbolTable interface {
 	ResetSubroutineTable()
 }
 
-type Symbol interface {
-	String() string
-}
-
 func New(className string, tkz Tokenizer, w io.Writer) *engine {
-	return &engine{className, tkz, symtable.New(), bufio.NewWriter(w), 0, buf{}, CLASS}
+	return &engine{className, tkz, symtable.New(), bufio.NewWriter(w), 0, &buf{}, CLASS}
 }
 
 func (e *engine) Compile() (err error) {
@@ -98,14 +97,17 @@ func (e *engine) compileClassVarDec() {
 func (e *engine) compileSubroutineDec() {
 	e.ResetSubroutineTable()
 	e.scope = SUBROUTINE
-	defer func() { e.scope = CLASS }()
+	defer func() {
+		e.scope = CLASS
+		e.whileCount = 0
+		e.ifCount = 0
+	}()
 	e.validateKeyword("constructor", "function", "method")
 	e.validateKeywordOrType("void")
 	e.validateSubroutineName()
 	e.validateSymbol("(")
 	e.compileParameterList()
 	e.validateSymbol(")")
-	e.declareSubroutine()
 	e.compileSubroutineBody()
 }
 
@@ -129,6 +131,7 @@ func (e *engine) compileSubroutineBody() {
 	for e.CurrentToken().IsKeyword("var") {
 		e.compileVarDec()
 	}
+	e.declareSubroutine()
 	e.compileStatements()
 	e.validateSymbol("}")
 }
@@ -166,7 +169,7 @@ func (e *engine) compileStatements() {
 
 func (e *engine) compileLetStatement() {
 	e.validateKeyword("let")
-	e.validateIdentifier()
+	e.validateVarName()
 	if token := e.CurrentToken(); token.IsSymbol("[") {
 		e.validateSymbol("[")
 		e.compileExpression()
@@ -175,33 +178,45 @@ func (e *engine) compileLetStatement() {
 	e.validateSymbol("=")
 	e.compileExpression()
 	e.validateSymbol(";")
+	e.letStatement()
 }
 
 func (e *engine) compileIfStatement() {
+	count := e.ifCount
+	e.ifCount++
 	e.validateKeyword("if")
 	e.validateSymbol("(")
 	e.compileExpression()
 	e.validateSymbol(")")
 	e.validateSymbol("{")
+	e.startIf(count)
 	e.compileStatements()
 	e.validateSymbol("}")
 	if token := e.CurrentToken(); !token.IsKeyword("else") {
+		e.elseIf(true, count)
 		return
 	}
 	e.validateKeyword("else")
 	e.validateSymbol("{")
+	e.elseIf(false, count)
 	e.compileStatements()
 	e.validateSymbol("}")
+	e.endIf(count)
 }
 
 func (e *engine) compileWhileStatement() {
+	count := e.whileCount
+	e.whileCount++
 	e.validateKeyword("while")
+	e.startWhile(count)
 	e.validateSymbol("(")
 	e.compileExpression()
+	e.jumpWhile(count)
 	e.validateSymbol(")")
 	e.validateSymbol("{")
 	e.compileStatements()
 	e.validateSymbol("}")
+	e.endWhile(count)
 }
 
 func (e *engine) compileDoStatement() {
@@ -221,7 +236,7 @@ func (e *engine) compileDoStatement() {
 		panic(errors.New("token is not valid as do statement"))
 	}
 	e.validateSymbol(";")
-	e.doStatment()
+	e.doStatement()
 }
 
 func (e *engine) compileReturnStatement() {
@@ -230,7 +245,7 @@ func (e *engine) compileReturnStatement() {
 		e.compileExpression()
 	}
 	e.validateSymbol(";")
-	e.returnStatment()
+	e.returnStatement()
 }
 
 func (e *engine) compileExpressionList() {
@@ -263,18 +278,21 @@ func (e *engine) compileTerm() {
 	switch true {
 	case token.IsIntConst():
 		e.validateIntConst()
-		e.intTerm()
+		e.callIntConst()
 	case token.IsStringConst():
 		e.validateStringConst()
 	case token.IsKeyword("true", "false", "null", "this"):
+		e.term.value = e.CurrentToken().Content()
 		e.validateKeyword("true", "false", "null", "this")
+		e.callKeywordConst()
 	case token.IsSymbol("("):
 		e.validateSymbol("(")
 		e.compileExpression()
 		e.validateSymbol(")")
 	case token.IsSymbol("-", "~"):
-		e.validateSymbol("-", "~")
+		e.validateOperator("-", "~")
 		e.compileTerm()
+		e.calcUnary()
 	case token.IsIdentifier():
 		nextToken := e.Peek()
 		if nextToken == nil {
@@ -282,24 +300,27 @@ func (e *engine) compileTerm() {
 		}
 		switch true {
 		case nextToken.IsSymbol("["):
-			e.validateIdentifier()
+			e.validateVarName()
 			e.validateSymbol("[")
 			e.compileExpression()
 			e.validateSymbol("]")
 		case nextToken.IsSymbol("("):
-			e.validateIdentifier()
+			e.validateSubroutineName()
 			e.validateSymbol("(")
 			e.compileExpressionList()
 			e.validateSymbol(")")
+			e.callFunc()
 		case nextToken.IsSymbol("."):
-			e.validateIdentifier()
+			e.validateSubroutineName()
 			e.validateSymbol(".")
-			e.validateIdentifier()
+			e.validateReceiverName()
 			e.validateSymbol("(")
 			e.compileExpressionList()
 			e.validateSymbol(")")
+			e.callFunc()
 		default:
-			e.validateIdentifier()
+			e.validateVarName()
+			e.callVar()
 		}
 	default:
 		panic(errors.New("token is not valid as term"))

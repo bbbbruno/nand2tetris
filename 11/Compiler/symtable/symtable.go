@@ -6,8 +6,8 @@ type symboltable struct {
 }
 
 func New() *symboltable {
-	classTable := &classTable{&table{make([]*symbol, 0)}}
-	subroutineTable := &subroutineTable{&table{make([]*symbol, 0)}}
+	classTable := &classTable{&table{make([]*Symbol, 0)}}
+	subroutineTable := &subroutineTable{&table{make([]*Symbol, 0)}}
 	return &symboltable{classTable, subroutineTable}
 }
 
@@ -20,5 +20,5 @@ func (st *symboltable) SubroutineTable() Table {
 }
 
 func (st *symboltable) ResetSubroutineTable() {
-	st.subroutineTable.symbols = make([]*symbol, 0)
+	st.subroutineTable.symbols = make([]*Symbol, 0)
 }

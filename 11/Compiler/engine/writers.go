@@ -30,6 +30,33 @@ func (e *engine) writePop(segment string, index int) error {
 	return nil
 }
 
+func (e *engine) writeLabel(label string) error {
+	text := fmt.Sprintf("label %s", label)
+	if _, err := fmt.Fprintln(e, text); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (e *engine) writeIf(label string) error {
+	text := fmt.Sprintf("if-goto %s", label)
+	if _, err := fmt.Fprintln(e, text); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (e *engine) writeGoto(label string) error {
+	text := fmt.Sprintf("goto %s", label)
+	if _, err := fmt.Fprintln(e, text); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (e *engine) writeFunction(receiver string, name string, nLocals int) error {
 	text := fmt.Sprintf("function %s.%s %d", receiver, name, nLocals)
 	if _, err := fmt.Fprintln(e, text); err != nil {

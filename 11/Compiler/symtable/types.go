@@ -11,25 +11,25 @@ const (
 	VAR
 )
 
-var kindStrings = [...]string{"", "static", "field", "argument", "local"}
 var kinds = map[string]kind{
 	"static":   STATIC,
 	"field":    FIELD,
 	"argument": ARG,
 	"var":      VAR,
 }
+var kindStrings = [...]string{"", "static", "field", "argument", "local"}
 
 func (k kind) String() string {
 	return kindStrings[k]
 }
 
-type symbol struct {
-	name    string
-	symtype string
-	kind    kind
-	index   int
+type Symbol struct {
+	Name    string
+	Symtype string
+	Kind    kind
+	Index   int
 }
 
-func (s *symbol) String() string {
-	return fmt.Sprintf("%s %s %s %d", s.kind, s.symtype, s.name, s.index)
+func (s *Symbol) String() string {
+	return fmt.Sprintf("%s %s %s %d", s.Kind, s.Symtype, s.Name, s.Index)
 }

@@ -3,6 +3,7 @@ package engine
 import (
 	"errors"
 	"fmt"
+	"jackcompiler/symtable"
 )
 
 func (e *engine) validateKeyword(keys ...string) {
@@ -36,7 +37,7 @@ func (e *engine) validateIdentifier() {
 
 func (e *engine) validateIntConst() {
 	if token := e.CurrentToken(); token.IsIntConst() {
-		e.term.kind, e.term.value = "intConst", token.Content()
+		e.term.value = token.Content()
 		e.Advance()
 	} else {
 		panic(errors.New("token is not integer constant"))
@@ -98,15 +99,17 @@ func (e *engine) validateOperator(keys ...string) {
 
 func (e *engine) addVar() {
 	var (
-		// sym Symbol
+		sym *symtable.Symbol
 		err error
 	)
 	if e.scope == CLASS {
-		_, err = e.ClassTable().Define(e.variable.name, e.variable.symtype, e.variable.kind)
+		sym, err = e.ClassTable().Define(e.variable.name, e.variable.symtype, e.variable.kind)
 	} else {
-		_, err = e.SubroutineTable().Define(e.variable.name, e.variable.symtype, e.variable.kind)
+		sym, err = e.SubroutineTable().Define(e.variable.name, e.variable.symtype, e.variable.kind)
 	}
 	if err != nil {
 		panic(err)
 	}
+
+	e.sym = sym
 }
