@@ -18,7 +18,7 @@ type buf struct {
 	variable        struct{ name, symtype, kind string }
 	sym             *symtable.Symbol
 	term            struct{ value, kind string }
-	expression      struct{ operator, nextoperator string }
+	operators       []string
 	expressionCount int
 	whileCount      int
 	ifCount         int
@@ -103,6 +103,10 @@ func (e *engine) compileSubroutineDec() {
 		e.ifCount = 0
 	}()
 	e.validateKeyword("constructor", "function", "method")
+	if e.subroutine.kind == "method" {
+		e.variable.name, e.variable.symtype, e.variable.kind = "_", "_", "argument"
+		e.addVar()
+	}
 	e.validateKeywordOrType("void")
 	e.validateSubroutineName()
 	e.validateSymbol("(")
@@ -235,12 +239,14 @@ func (e *engine) compileDoStatement() {
 	e.validateKeyword("do")
 	e.validateSubroutineName()
 	if token := e.CurrentToken(); token.IsSymbol("(") {
+		e.callReceiver()
 		e.validateSymbol("(")
 		e.compileExpressionList()
 		e.validateSymbol(")")
 	} else if token.IsSymbol(".") {
 		e.validateSymbol(".")
 		e.validateReceiverName()
+		e.callReceiver()
 		e.validateSymbol("(")
 		e.compileExpressionList()
 		e.validateSymbol(")")
@@ -322,6 +328,7 @@ func (e *engine) compileTerm() {
 			e.callArray()
 		case nextToken.IsSymbol("("):
 			e.validateSubroutineName()
+			e.callReceiver()
 			e.validateSymbol("(")
 			e.compileExpressionList()
 			e.validateSymbol(")")
@@ -330,6 +337,7 @@ func (e *engine) compileTerm() {
 			e.validateSubroutineName()
 			e.validateSymbol(".")
 			e.validateReceiverName()
+			e.callReceiver()
 			e.validateSymbol("(")
 			e.compileExpressionList()
 			e.validateSymbol(")")

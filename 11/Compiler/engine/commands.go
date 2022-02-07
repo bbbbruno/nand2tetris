@@ -127,11 +127,11 @@ var commands = map[string]string{
 }
 
 func (e *engine) calcExpression() {
-	cmd := commands[e.expression.operator]
-	e.expression.operator = e.expression.nextoperator
+	cmd := commands[e.operators[len(e.operators)-1]]
 	if err := e.writeArithmethic(cmd); err != nil {
 		panic(err)
 	}
+	e.operators = e.operators[:len(e.operators)-1]
 }
 
 func (e *engine) calcArray(sym *symtable.Symbol) {
@@ -148,11 +148,11 @@ var unaries = map[string]string{
 }
 
 func (e *engine) calcUnary() {
-	unary := unaries[e.expression.operator]
-	e.expression.operator = e.expression.nextoperator
+	unary := unaries[e.operators[len(e.operators)-1]]
 	if err := e.writeArithmethic(unary); err != nil {
 		panic(err)
 	}
+	e.operators = e.operators[:len(e.operators)-1]
 }
 
 func (e *engine) callIntConst() {
@@ -209,6 +209,28 @@ func (e *engine) callKeywordConst() {
 	}
 }
 
+func (e *engine) callReceiver() {
+	if receiver := e.subroutine.receiver; receiver == "" {
+		e.expressionCount++
+		e.subroutine.receiver = e.className
+		if err := e.writePush("pointer", 0); err != nil {
+			panic(err)
+		}
+	} else if sym, ok := e.SubroutineTable().Find(receiver); ok {
+		e.expressionCount++
+		e.subroutine.receiver = sym.Symtype
+		if err := e.writePush(sym.Kind.String(), sym.Index); err != nil {
+			panic(err)
+		}
+	} else if sym, ok := e.ClassTable().Find(receiver); ok {
+		e.expressionCount++
+		e.subroutine.receiver = sym.Symtype
+		if err := e.writePush(sym.Kind.String(), sym.Index); err != nil {
+			panic(err)
+		}
+	}
+}
+
 func (e *engine) resetSubroutine() {
 	e.subroutine.receiver, e.subroutine.name, e.subroutine.kind = "", "", ""
 	e.expressionCount = 0
@@ -216,29 +238,10 @@ func (e *engine) resetSubroutine() {
 
 func (e *engine) callFunc() {
 	receiver, name, nArgs := e.subroutine.receiver, e.subroutine.name, e.expressionCount
-	if receiver == "" {
-		nArgs++
-		receiver = e.className
-		if err := e.writePush("pointer", 0); err != nil {
-			panic(err)
-		}
-	} else if sym, ok := e.SubroutineTable().Find(receiver); ok {
-		nArgs++
-		receiver = sym.Symtype
-		if err := e.writePush(sym.Kind.String(), sym.Index); err != nil {
-			panic(err)
-		}
-	} else if sym, ok := e.ClassTable().Find(receiver); ok {
-		nArgs++
-		receiver = sym.Symtype
-		if err := e.writePush(sym.Kind.String(), sym.Index); err != nil {
-			panic(err)
-		}
-	}
-	e.resetSubroutine()
 	if err := e.writeCall(receiver, name, nArgs); err != nil {
 		panic(err)
 	}
+	e.resetSubroutine()
 }
 
 func (e *engine) callVar() {

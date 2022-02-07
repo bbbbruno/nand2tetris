@@ -93,8 +93,7 @@ func (e *engine) validateReceiverName() {
 }
 
 func (e *engine) validateOperator(keys ...string) {
-	e.expression.nextoperator = e.expression.operator
-	e.expression.operator = e.CurrentToken().Content()
+	e.operators = append(e.operators, e.CurrentToken().Content())
 	e.validateSymbol(keys...)
 }
 
