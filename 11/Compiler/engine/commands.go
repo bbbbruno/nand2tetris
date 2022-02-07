@@ -137,9 +137,9 @@ func (e *engine) calcExpression() {
 func (e *engine) calcArray(sym *symtable.Symbol) {
 	e.sym = sym
 	e.callVar()
-	e.expression.nextoperator = e.expression.operator
-	e.expression.operator = "+"
-	e.calcExpression()
+	if err := e.writeArithmethic("add"); err != nil {
+		panic(err)
+	}
 }
 
 var unaries = map[string]string{
