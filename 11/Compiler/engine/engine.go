@@ -176,15 +176,21 @@ func (e *engine) compileLetStatement() {
 	e.validateKeyword("let")
 	e.validateVarName()
 	sym := e.sym
-	if token := e.CurrentToken(); token.IsSymbol("[") {
+	isArray := e.CurrentToken().IsSymbol("[")
+	if isArray {
 		e.validateSymbol("[")
 		e.compileExpression()
 		e.validateSymbol("]")
+		e.calcArray(sym)
 	}
 	e.validateSymbol("=")
 	e.compileExpression()
 	e.validateSymbol(";")
-	e.letStatement(sym)
+	if isArray {
+		e.letArrayStatment()
+	} else {
+		e.letStatement(sym)
+	}
 }
 
 func (e *engine) compileIfStatement() {
@@ -287,6 +293,7 @@ func (e *engine) compileTerm() {
 		e.callIntConst()
 	case token.IsStringConst():
 		e.validateStringConst()
+		e.callStringConst()
 	case token.IsKeyword("true", "false", "null", "this"):
 		e.term.value = e.CurrentToken().Content()
 		e.validateKeyword("true", "false", "null", "this")
@@ -307,9 +314,12 @@ func (e *engine) compileTerm() {
 		switch true {
 		case nextToken.IsSymbol("["):
 			e.validateVarName()
+			sym := e.sym
 			e.validateSymbol("[")
 			e.compileExpression()
 			e.validateSymbol("]")
+			e.calcArray(sym)
+			e.callArray()
 		case nextToken.IsSymbol("("):
 			e.validateSubroutineName()
 			e.validateSymbol("(")

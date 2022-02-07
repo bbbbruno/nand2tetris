@@ -46,6 +46,7 @@ func (e *engine) validateIntConst() {
 
 func (e *engine) validateStringConst() {
 	if token := e.CurrentToken(); token.IsStringConst() {
+		e.term.value = token.Content()
 		e.Advance()
 	} else {
 		panic(errors.New("token is not string constant"))

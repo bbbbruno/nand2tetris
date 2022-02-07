@@ -81,6 +81,21 @@ func (e *engine) letStatement(sym *symtable.Symbol) {
 	}
 }
 
+func (e *engine) letArrayStatment() {
+	if err := e.writePop("temp", 0); err != nil {
+		panic(err)
+	}
+	if err := e.writePop("pointer", 1); err != nil {
+		panic(err)
+	}
+	if err := e.writePush("temp", 0); err != nil {
+		panic(err)
+	}
+	if err := e.writePop("that", 0); err != nil {
+		panic(err)
+	}
+}
+
 func (e *engine) doStatement() {
 	e.callFunc()
 	if err := e.writePop("temp", 0); err != nil {
@@ -119,6 +134,14 @@ func (e *engine) calcExpression() {
 	}
 }
 
+func (e *engine) calcArray(sym *symtable.Symbol) {
+	e.sym = sym
+	e.callVar()
+	e.expression.nextoperator = e.expression.operator
+	e.expression.operator = "+"
+	e.calcExpression()
+}
+
 var unaries = map[string]string{
 	"-": "neg",
 	"~": "not",
@@ -141,6 +164,24 @@ func (e *engine) callIntConst() {
 	segment, index := "constant", i
 	if err := e.writePush(segment, index); err != nil {
 		panic(err)
+	}
+}
+
+func (e *engine) callStringConst() {
+	str := e.term.value
+	if err := e.writePush("constant", len(str)); err != nil {
+		panic(err)
+	}
+	if err := e.writeCall("String", "new", 1); err != nil {
+		panic(err)
+	}
+	for _, s := range e.term.value {
+		if err := e.writePush("constant", int(s)); err != nil {
+			panic(err)
+		}
+		if err := e.writeCall("String", "appendChar", 2); err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -203,6 +244,15 @@ func (e *engine) callFunc() {
 func (e *engine) callVar() {
 	segment, index := e.sym.Kind.String(), e.sym.Index
 	if err := e.writePush(segment, index); err != nil {
+		panic(err)
+	}
+}
+
+func (e *engine) callArray() {
+	if err := e.writePop("pointer", 1); err != nil {
+		panic(err)
+	}
+	if err := e.writePush("that", 0); err != nil {
 		panic(err)
 	}
 }
