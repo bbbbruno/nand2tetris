@@ -98,18 +98,23 @@ func (e *engine) validateOperator(keys ...string) {
 }
 
 func (e *engine) addVar() {
-	var (
-		sym *symtable.Symbol
-		err error
-	)
-	if e.scope == CLASS {
-		sym, err = e.ClassTable().Define(e.variable.name, e.variable.symtype, e.variable.kind)
-	} else {
-		sym, err = e.SubroutineTable().Define(e.variable.name, e.variable.symtype, e.variable.kind)
-	}
-	if err != nil {
-		panic(err)
+	if sym, ok := e.SubroutineTable().Find(e.variable.name); ok {
+		e.sym = sym
+		return
+	} else if sym, ok := e.ClassTable().Find(e.variable.name); ok {
+		e.sym = sym
+		return
 	}
 
+	var table symtable.Table
+	if e.scope == CLASS {
+		table = e.ClassTable()
+	} else {
+		table = e.SubroutineTable()
+	}
+	if err := table.Define(e.variable.name, e.variable.symtype, e.variable.kind); err != nil {
+		panic(err)
+	}
+	sym, _ := table.Find(e.variable.name)
 	e.sym = sym
 }

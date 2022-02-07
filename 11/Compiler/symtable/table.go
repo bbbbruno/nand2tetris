@@ -5,8 +5,9 @@ import (
 )
 
 type Table interface {
-	Define(name, symtype, kind string) (*Symbol, error)
+	Find(name string) (*Symbol, bool)
 	VarCount(kind string) int
+	Define(name, symtype, kind string) error
 }
 
 type table struct {
@@ -28,7 +29,7 @@ func (t *table) VarCount(kind string) int {
 	return len(arr)
 }
 
-func (t *table) find(name string) (*Symbol, bool) {
+func (t *table) Find(name string) (*Symbol, bool) {
 	for _, sym := range t.symbols {
 		if sym.Name == name {
 			return sym, true
@@ -42,18 +43,14 @@ type classTable struct {
 	*table
 }
 
-func (t *classTable) Define(name string, symtype string, kind string) (*Symbol, error) {
-	if sym, ok := t.find(name); ok {
-		return sym, nil
-	}
-
+func (t *classTable) Define(name string, symtype string, kind string) error {
 	k := kinds[kind]
 	if k == STATIC || k == FIELD {
 		sym := &Symbol{name, symtype, k, t.VarCount(kind)}
 		t.symbols = append(t.symbols, sym)
-		return sym, nil
+		return nil
 	} else {
-		return nil, errors.New("invalid type, expected STATIC or FIELD")
+		return errors.New("invalid type, expected STATIC or FIELD")
 	}
 }
 
@@ -61,17 +58,13 @@ type subroutineTable struct {
 	*table
 }
 
-func (t *subroutineTable) Define(name string, symtype string, kind string) (*Symbol, error) {
-	if sym, ok := t.find(name); ok {
-		return sym, nil
-	}
-
+func (t *subroutineTable) Define(name string, symtype string, kind string) error {
 	k := kinds[kind]
 	if k == ARG || k == VAR {
 		sym := &Symbol{name, symtype, k, t.VarCount(kind)}
 		t.symbols = append(t.symbols, sym)
-		return sym, nil
+		return nil
 	} else {
-		return nil, errors.New("invalid type, expected ARG or VAR")
+		return errors.New("invalid type, expected ARG or VAR")
 	}
 }

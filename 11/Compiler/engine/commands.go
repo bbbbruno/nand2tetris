@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"jackcompiler/symtable"
 	"strconv"
 )
 
@@ -12,7 +13,6 @@ func (e *engine) declareSubroutine() {
 }
 
 func (e *engine) startWhile(count int) {
-	e.whileCount++
 	label := "WHILE_EXP" + strconv.Itoa(count)
 	if err := e.writeLabel(label); err != nil {
 		panic(err)
@@ -74,19 +74,15 @@ func (e *engine) endIf(count int) {
 	}
 }
 
-func (e *engine) letStatement() {
-	segment, index := e.sym.Kind.String(), e.sym.Index
+func (e *engine) letStatement(sym *symtable.Symbol) {
+	segment, index := sym.Kind.String(), sym.Index
 	if err := e.writePop(segment, index); err != nil {
 		panic(err)
 	}
 }
 
 func (e *engine) doStatement() {
-	receiver, name, nArgs := e.subroutine.receiver, e.subroutine.name, e.expressionCount
-	e.expressionCount = 0
-	if err := e.writeCall(receiver, name, nArgs); err != nil {
-		panic(err)
-	}
+	e.callFunc()
 	if err := e.writePop("temp", 0); err != nil {
 		panic(err)
 	}
@@ -149,24 +145,56 @@ func (e *engine) callIntConst() {
 }
 
 func (e *engine) callKeywordConst() {
-	segment := "constant"
-	if v := e.term.value; v == "true" {
-		if err := e.writePush(segment, 0); err != nil {
+	switch e.term.value {
+	case "true":
+		if err := e.writePush("constant", 0); err != nil {
 			panic(err)
 		}
 		if err := e.writeArithmethic("not"); err != nil {
 			panic(err)
 		}
-	} else if v == "false" {
-		if err := e.writePush(segment, 0); err != nil {
+	case "false":
+		if err := e.writePush("constant", 0); err != nil {
+			panic(err)
+		}
+	case "this":
+		if err := e.writePush("pointer", 0); err != nil {
+			panic(err)
+		}
+	case "null":
+		if err := e.writePush("constant", 0); err != nil {
 			panic(err)
 		}
 	}
 }
 
+func (e *engine) resetSubroutine() {
+	e.subroutine.receiver, e.subroutine.name, e.subroutine.kind = "", "", ""
+	e.expressionCount = 0
+}
+
 func (e *engine) callFunc() {
 	receiver, name, nArgs := e.subroutine.receiver, e.subroutine.name, e.expressionCount
-	e.expressionCount = 0
+	if receiver == "" {
+		nArgs++
+		receiver = e.className
+		if err := e.writePush("pointer", 0); err != nil {
+			panic(err)
+		}
+	} else if sym, ok := e.SubroutineTable().Find(receiver); ok {
+		nArgs++
+		receiver = sym.Symtype
+		if err := e.writePush(sym.Kind.String(), sym.Index); err != nil {
+			panic(err)
+		}
+	} else if sym, ok := e.ClassTable().Find(receiver); ok {
+		nArgs++
+		receiver = sym.Symtype
+		if err := e.writePush(sym.Kind.String(), sym.Index); err != nil {
+			panic(err)
+		}
+	}
+	e.resetSubroutine()
 	if err := e.writeCall(receiver, name, nArgs); err != nil {
 		panic(err)
 	}
@@ -175,6 +203,28 @@ func (e *engine) callFunc() {
 func (e *engine) callVar() {
 	segment, index := e.sym.Kind.String(), e.sym.Index
 	if err := e.writePush(segment, index); err != nil {
+		panic(err)
+	}
+}
+
+func (e *engine) allocateMemory() {
+	size := e.ClassTable().VarCount("field")
+	if err := e.writePush("constant", size); err != nil {
+		panic(err)
+	}
+	if err := e.writeCall("Memory", "alloc", 1); err != nil {
+		panic(err)
+	}
+	if err := e.writePop("pointer", 0); err != nil {
+		panic(err)
+	}
+}
+
+func (e *engine) setPointer() {
+	if err := e.writePush("argument", 0); err != nil {
+		panic(err)
+	}
+	if err := e.writePop("pointer", 0); err != nil {
 		panic(err)
 	}
 }

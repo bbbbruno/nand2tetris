@@ -17,7 +17,7 @@ var kinds = map[string]kind{
 	"argument": ARG,
 	"var":      VAR,
 }
-var kindStrings = [...]string{"", "static", "field", "argument", "local"}
+var kindStrings = [...]string{"", "static", "this", "argument", "local"}
 
 func (k kind) String() string {
 	return kindStrings[k]

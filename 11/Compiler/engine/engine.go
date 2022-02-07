@@ -132,6 +132,11 @@ func (e *engine) compileSubroutineBody() {
 		e.compileVarDec()
 	}
 	e.declareSubroutine()
+	if e.subroutine.kind == "constructor" {
+		e.allocateMemory()
+	} else if e.subroutine.kind == "method" {
+		e.setPointer()
+	}
 	e.compileStatements()
 	e.validateSymbol("}")
 }
@@ -170,6 +175,7 @@ func (e *engine) compileStatements() {
 func (e *engine) compileLetStatement() {
 	e.validateKeyword("let")
 	e.validateVarName()
+	sym := e.sym
 	if token := e.CurrentToken(); token.IsSymbol("[") {
 		e.validateSymbol("[")
 		e.compileExpression()
@@ -178,7 +184,7 @@ func (e *engine) compileLetStatement() {
 	e.validateSymbol("=")
 	e.compileExpression()
 	e.validateSymbol(";")
-	e.letStatement()
+	e.letStatement(sym)
 }
 
 func (e *engine) compileIfStatement() {
