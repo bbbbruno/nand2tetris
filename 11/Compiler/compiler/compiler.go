@@ -12,13 +12,11 @@ import (
 
 type compiler struct {
 	source string
-	name   string
 }
 
 func New(source string) *compiler {
 	c := &compiler{}
 	c.source = source
-	c.name = strings.Replace(filepath.Base(c.source), filepath.Ext(c.source), "", 1)
 	return c
 }
 
@@ -32,20 +30,20 @@ func (c *compiler) Run() error {
 		return err
 	}
 
-	outFile, err := os.Create(filepath.Join(dest, c.name+".vm"))
-	if err != nil {
-		return err
-	}
-	defer outFile.Close()
-
 	for _, path := range paths {
+		filename := strings.Replace(filepath.Base(path), filepath.Ext(path), "", 1)
+		outFile, err := os.Create(filepath.Join(dest, filename+".vm"))
+		if err != nil {
+			return err
+		}
+		defer outFile.Close()
+
 		file, err := os.Open(path)
 		if err != nil {
 			return err
 		}
 		defer file.Close()
 
-		filename := strings.Replace(filepath.Base(path), filepath.Ext(path), "", 1)
 		tokenizer := tokenizer.New(file)
 		engine := engine.New(filename, tokenizer, outFile)
 		if err := engine.Compile(); err != nil {
