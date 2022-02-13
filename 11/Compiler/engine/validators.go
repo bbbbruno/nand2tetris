@@ -86,9 +86,15 @@ func (e *engine) validateSubroutineName() {
 	e.validateIdentifier()
 }
 
+func (e *engine) validateFunctionName() {
+	e.functions = append(e.functions, &function{"", e.CurrentToken().Content(), 0})
+	e.validateIdentifier()
+}
+
 func (e *engine) validateReceiverName() {
-	e.subroutine.receiver = e.subroutine.name
-	e.subroutine.name = e.CurrentToken().Content()
+	function := e.functions[len(e.functions)-1]
+	function.receiver = function.name
+	function.name = e.CurrentToken().Content()
 	e.validateIdentifier()
 }
 

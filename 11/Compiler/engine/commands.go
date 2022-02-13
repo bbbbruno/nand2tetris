@@ -210,38 +210,35 @@ func (e *engine) callKeywordConst() {
 }
 
 func (e *engine) callReceiver() {
-	if receiver := e.subroutine.receiver; receiver == "" {
-		e.expressionCount++
-		e.subroutine.receiver = e.className
+	function := e.functions[len(e.functions)-1]
+	if receiver := function.receiver; receiver == "" {
+		function.expressionCount++
+		function.receiver = e.className
 		if err := e.writePush("pointer", 0); err != nil {
 			panic(err)
 		}
 	} else if sym, ok := e.SubroutineTable().Find(receiver); ok {
-		e.expressionCount++
-		e.subroutine.receiver = sym.Symtype
+		function.expressionCount++
+		function.receiver = sym.Symtype
 		if err := e.writePush(sym.Kind.String(), sym.Index); err != nil {
 			panic(err)
 		}
 	} else if sym, ok := e.ClassTable().Find(receiver); ok {
-		e.expressionCount++
-		e.subroutine.receiver = sym.Symtype
+		function.expressionCount++
+		function.receiver = sym.Symtype
 		if err := e.writePush(sym.Kind.String(), sym.Index); err != nil {
 			panic(err)
 		}
 	}
 }
 
-func (e *engine) resetSubroutine() {
-	e.subroutine.receiver, e.subroutine.name, e.subroutine.kind = "", "", ""
-	e.expressionCount = 0
-}
-
 func (e *engine) callFunc() {
-	receiver, name, nArgs := e.subroutine.receiver, e.subroutine.name, e.expressionCount
+	function := e.functions[len(e.functions)-1]
+	receiver, name, nArgs := function.receiver, function.name, function.expressionCount
 	if err := e.writeCall(receiver, name, nArgs); err != nil {
 		panic(err)
 	}
-	e.resetSubroutine()
+	e.functions = e.functions[:len(e.functions)-1]
 }
 
 func (e *engine) callVar() {

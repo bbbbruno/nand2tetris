@@ -13,15 +13,20 @@ type scope bool
 
 const CLASS, SUBROUTINE scope = true, false
 
-type buf struct {
-	subroutine      struct{ returnval, receiver, name, kind string }
-	variable        struct{ name, symtype, kind string }
-	sym             *symtable.Symbol
-	term            struct{ value, kind string }
-	operators       []string
+type function struct {
+	receiver, name  string
 	expressionCount int
-	whileCount      int
-	ifCount         int
+}
+
+type buf struct {
+	subroutine struct{ returnval, name, kind string }
+	variable   struct{ name, symtype, kind string }
+	sym        *symtable.Symbol
+	term       struct{ value, kind string }
+	functions  []*function
+	operators  []string
+	whileCount int
+	ifCount    int
 }
 
 type engine struct {
@@ -51,11 +56,11 @@ func New(className string, tkz Tokenizer, w io.Writer) *engine {
 }
 
 func (e *engine) Compile() (err error) {
-	defer func() {
-		if rec := recover(); rec != nil {
-			err = rec.(error)
-		}
-	}()
+	// defer func() {
+	// 	if rec := recover(); rec != nil {
+	// 		err = rec.(error)
+	// 	}
+	// }()
 	e.Advance()
 	e.compileClass()
 	if err := e.Flush(); err != nil {
@@ -237,7 +242,7 @@ func (e *engine) compileWhileStatement() {
 
 func (e *engine) compileDoStatement() {
 	e.validateKeyword("do")
-	e.validateSubroutineName()
+	e.validateFunctionName()
 	if token := e.CurrentToken(); token.IsSymbol("(") {
 		e.callReceiver()
 		e.validateSymbol("(")
@@ -271,10 +276,11 @@ func (e *engine) compileExpressionList() {
 		return
 	}
 
-	e.expressionCount++
+	function := e.functions[len(e.functions)-1]
+	function.expressionCount++
 	e.compileExpression()
 	for e.CurrentToken().IsSymbol(",") {
-		e.expressionCount++
+		function.expressionCount++
 		e.validateSymbol(",")
 		e.compileExpression()
 	}
@@ -327,14 +333,14 @@ func (e *engine) compileTerm() {
 			e.calcArray(sym)
 			e.callArray()
 		case nextToken.IsSymbol("("):
-			e.validateSubroutineName()
+			e.validateFunctionName()
 			e.callReceiver()
 			e.validateSymbol("(")
 			e.compileExpressionList()
 			e.validateSymbol(")")
 			e.callFunc()
 		case nextToken.IsSymbol("."):
-			e.validateSubroutineName()
+			e.validateFunctionName()
 			e.validateSymbol(".")
 			e.validateReceiverName()
 			e.callReceiver()
