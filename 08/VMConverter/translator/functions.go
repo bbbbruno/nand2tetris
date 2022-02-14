@@ -121,7 +121,7 @@ M=M+1
 @%d
 D=A
 @5
-D=A+D
+D=D+A
 @SP
 D=M-D
 @ARG

@@ -25,9 +25,9 @@ func parseSegment(segment string) (label, comp string) {
 	label = segmentLabelMap[segment]
 	switch segment {
 	case "pointer", "temp":
-		comp = "A+D"
+		comp = "D+A"
 	default:
-		comp = "M+D"
+		comp = "D+M"
 	}
 	return label, comp
 }

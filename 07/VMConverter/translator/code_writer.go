@@ -48,11 +48,11 @@ func (c *codewriter) Close() error {
 }
 
 var operationMap = map[string]string{
-	"add": operateDouble("M+D"),
+	"add": operateDouble("D+M"),
 	"sub": operateDouble("M-D"),
 	"neg": operateSingle("-M"),
-	"and": operateDouble("M&D"),
-	"or":  operateDouble("M|D"),
+	"and": operateDouble("D&M"),
+	"or":  operateDouble("D|M"),
 	"not": operateSingle("!M"),
 }
 var comparisonMap = map[string]string{
