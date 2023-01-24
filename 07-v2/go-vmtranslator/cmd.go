@@ -50,44 +50,90 @@ type PushPopCmd struct {
 	Index   int
 }
 
+type PushCmd struct {
+	*PushPopCmd
+}
+
+type PopCmd struct {
+	*PushPopCmd
+}
+
 var segments []string = []string{"argument", "local", "static", "constant", "this", "that", "pointer", "temp"}
 
 func IsPushPopCmd(s string) bool {
 	return s == "push" || s == "pop"
 }
 
-func NewPushPopCmd(command, segment, index string) (*PushPopCmd, error) {
+func NewPushCmd(command, segment, index string) (*PushCmd, error) {
+	i, err := validatePushPopCmd(command, segment, index)
+	if err != nil {
+		return nil, xerrors.Errorf("%w", err)
+	}
+
+	return &PushCmd{&PushPopCmd{Command: command, Segment: segment, Index: i}}, nil
+}
+
+func NewPopCmd(command, segment, index string) (*PopCmd, error) {
+	i, err := validatePushPopCmd(command, segment, index)
+	if err != nil {
+		return nil, xerrors.Errorf("%w", err)
+	}
+
+	return &PopCmd{&PushPopCmd{Command: command, Segment: segment, Index: i}}, nil
+}
+
+func validatePushPopCmd(command, segment, index string) (int, error) {
 	if !IsPushPopCmd(command) {
-		return nil, xerrors.Errorf("Failed to create PushPopCmd: invalid command %s", command)
+		return 0, xerrors.Errorf("Failed to create PushPopCmd: invalid command %s", command)
 	}
 	if !slices.Contains(segments, segment) {
-		return nil, xerrors.Errorf("Failed to create PushPopCmd: invalid segment %s", segment)
+		return 0, xerrors.Errorf("Failed to create PushPopCmd: invalid segment %s", segment)
 	}
 	i, err := strconv.Atoi(index)
 	if err != nil {
-		return nil, xerrors.Errorf("Failed to create PushPopCmd: invalid index %d", i)
+		return 0, xerrors.Errorf("Failed to create PushPopCmd: invalid index %d", i)
 	} else if i < 0 {
-		return nil, xerrors.Errorf("Failed to create PushPopCmd: index %d must be greater than 0", i)
+		return 0, xerrors.Errorf("Failed to create PushPopCmd: index %d must be greater than 0", i)
 	}
 
-	return &PushPopCmd{Command: command, Segment: segment, Index: i}, nil
+	return i, nil
 }
 
-func (c *PushPopCmd) Translate() string {
-	if c.Command == "push" {
-		return c.segmentAssembly() + push()
-	} else {
-		return ""
-	}
+func (c *PushCmd) Translate() string {
+	return c.indexAssembly() + c.segmentAssembly() + push()
 }
 
-func (c *PushPopCmd) segmentAssembly() string {
+func (c *PushCmd) segmentAssembly() string {
 	switch c.Segment {
 	case "constant":
-		return fmt.Sprintf(`@%d
-D=A
-`, c.Index)
+		return ""
+	case "local", "argument", "this", "that":
+		return fmt.Sprintf(`@%s
+A=M+D
+D=M
+`, symbolAssembly[c.Segment])
 	default:
 		return ""
 	}
+}
+
+func (c *PopCmd) Translate() string {
+	return c.indexAssembly() + c.segmentAssembly() + pop("M") + `@R13
+A=M
+M=D
+`
+}
+
+func (c *PopCmd) segmentAssembly() string {
+	return fmt.Sprintf(`@%s
+D=M+D
+@R13
+M=D
+`, symbolAssembly[c.Segment])
+}
+
+func (c *PushPopCmd) indexAssembly() string {
+	return fmt.Sprintf(`@%d
+D=A
+`, c.Index)
 }

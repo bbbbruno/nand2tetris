@@ -17,7 +17,11 @@ func Parse(line string) (cmd Cmd, err error) {
 		}
 	case IsPushPopCmd(command) && len(ss) == 3:
 		segment, index := ss[1], ss[2]
-		cmd, err = NewPushPopCmd(command, segment, index)
+		if command == "push" {
+			cmd, err = NewPushCmd(command, segment, index)
+		} else {
+			cmd, err = NewPopCmd(command, segment, index)
+		}
 		if err != nil {
 			return nil, xerrors.Errorf("%w", err)
 		}

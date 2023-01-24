@@ -46,8 +46,8 @@ func TestNewArithmeticCmd(t *testing.T) {
 				t.Errorf("NewArithmeticCmd() error = %v, hasErr %v", err, tt.hasErr)
 				return
 			}
-			if !cmp.Equal(got, tt.want, opt) {
-				t.Errorf("NewArithmeticCmd() = %#v, want %#v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
+				t.Errorf("expected value is mismatch (-got +want):%s\n", diff)
 			}
 		})
 	}
@@ -188,7 +188,7 @@ M=M+1
 	}
 }
 
-func TestNewPushPopCmd(t *testing.T) {
+func TestNewPushCmd(t *testing.T) {
 	type args struct {
 		command, segment, index string
 	}
@@ -199,57 +199,116 @@ func TestNewPushPopCmd(t *testing.T) {
 		hasErr bool
 	}{
 		{
-			name:   "create push constant 3 command successfully",
-			args:   args{command: "push", segment: "constant", index: "3"},
-			want:   &vmtranslate.PushPopCmd{Command: "push", Segment: "constant", Index: 3},
+			name:   "create push constant 10 command successfully",
+			args:   args{command: "push", segment: "constant", index: "10"},
+			want:   &vmtranslate.PushCmd{&vmtranslate.PushPopCmd{Command: "push", Segment: "constant", Index: 10}},
 			hasErr: false,
 		},
 		{
-			name:   "create pop constant 0 command successfully",
-			args:   args{command: "pop", segment: "constant", index: "0"},
-			want:   &vmtranslate.PushPopCmd{Command: "pop", Segment: "constant", Index: 0},
+			name:   "create push local 1 command successfully",
+			args:   args{command: "push", segment: "local", index: "1"},
+			want:   &vmtranslate.PushCmd{&vmtranslate.PushPopCmd{Command: "push", Segment: "local", Index: 1}},
+			hasErr: false,
+		},
+		{
+			name:   "create push argument 0 command successfully",
+			args:   args{command: "push", segment: "argument", index: "0"},
+			want:   &vmtranslate.PushCmd{&vmtranslate.PushPopCmd{Command: "push", Segment: "argument", Index: 0}},
 			hasErr: false,
 		},
 		{
 			name:   "can't create command with invalid segment",
 			args:   args{command: "push", segment: "const", index: "0"},
-			want:   (*vmtranslate.PushPopCmd)(nil),
+			want:   (*vmtranslate.PushCmd)(nil),
 			hasErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := vmtranslate.NewPushPopCmd(tt.args.command, tt.args.segment, tt.args.index)
+			got, err := vmtranslate.NewPushCmd(tt.args.command, tt.args.segment, tt.args.index)
 			if (err != nil) != tt.hasErr {
-				t.Errorf("NewPushPopCmd() error = %v, hasErr %v", err, tt.hasErr)
+				t.Errorf("NewPushCmd() error = %v, hasErr %v", err, tt.hasErr)
 				return
 			}
-			if !cmp.Equal(got, tt.want) {
-				t.Errorf("NewPushPopCmd() = %#v, want %#v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("expected value is mismatch (-got +want):%s\n", diff)
 			}
 		})
 	}
 }
 
-func TestPushPopCmdTranslate(t *testing.T) {
+func TestPushCmdTranslate(t *testing.T) {
 	tests := []struct {
 		name   string
-		cmd    *vmtranslate.PushPopCmd
+		cmd    *vmtranslate.PushCmd
 		want   string
 		hasErr bool
 	}{
 		{
 			name: "translate push constant command",
-			cmd:  &vmtranslate.PushPopCmd{Command: "push", Segment: "constant", Index: 10},
-			want: fmt.Sprintf(`@%d
+			cmd:  &vmtranslate.PushCmd{&vmtranslate.PushPopCmd{Command: "push", Segment: "constant", Index: 10}},
+			want: `@10
 D=A
 @SP
 A=M
 M=D
 @SP
 M=M+1
-`, 10),
+`,
+		},
+		{
+			name: "translate push local command",
+			cmd:  &vmtranslate.PushCmd{&vmtranslate.PushPopCmd{Command: "push", Segment: "local", Index: 1}},
+			want: `@1
+D=A
+@LCL
+A=M+D
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.cmd.Translate()
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("expected value is mismatch (-got +want):%s\n", diff)
+			}
+		})
+	}
+}
+
+func TestPopCmdTranslate(t *testing.T) {
+	tests := []struct {
+		name   string
+		cmd    *vmtranslate.PopCmd
+		want   string
+		hasErr bool
+	}{
+
+		{
+			name: "translate pop local command",
+			cmd:  &vmtranslate.PopCmd{&vmtranslate.PushPopCmd{Command: "pop", Segment: "local", Index: 1}},
+			want: `@1
+D=A
+@LCL
+D=M+D
+@R13
+M=D
+@SP
+M=M-1
+A=M
+D=M
+@R13
+A=M
+M=D
+`,
 		},
 	}
 

@@ -47,6 +47,13 @@ var jmpAssembly = map[string]string{
 	"lt": "JLT",
 }
 
+var symbolAssembly = map[string]string{
+	"local":    "LCL",
+	"argument": "ARG",
+	"this":     "THIS",
+	"that":     "THAT",
+}
+
 func push() string {
 	return `@SP
 A=M

@@ -22,9 +22,9 @@ func TestParse(t *testing.T) {
 			hasErr: false,
 		},
 		{
-			name:   "parse push/pop constant command",
+			name:   "parse push constant command",
 			arg:    "push constant 10",
-			want:   &vmtranslate.PushPopCmd{Command: "push", Segment: "constant", Index: 10},
+			want:   &vmtranslate.PushCmd{&vmtranslate.PushPopCmd{Command: "push", Segment: "constant", Index: 10}},
 			hasErr: false,
 		},
 		{
