@@ -272,6 +272,21 @@ M=D
 M=M+1
 `,
 		},
+		{
+			name: "translate push pointer command",
+			cmd:  &vmtranslate.PushCmd{&vmtranslate.PushPopCmd{Command: "push", Segment: "pointer", Index: 1}},
+			want: `@1
+D=A
+@R3
+A=A+D
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -299,6 +314,24 @@ func TestPopCmdTranslate(t *testing.T) {
 D=A
 @LCL
 D=M+D
+@R13
+M=D
+@SP
+M=M-1
+A=M
+D=M
+@R13
+A=M
+M=D
+`,
+		},
+		{
+			name: "translate pop pointer command",
+			cmd:  &vmtranslate.PopCmd{&vmtranslate.PushPopCmd{Command: "pop", Segment: "pointer", Index: 1}},
+			want: `@1
+D=A
+@R3
+D=A+D
 @R13
 M=D
 @SP

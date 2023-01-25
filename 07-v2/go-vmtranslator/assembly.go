@@ -52,6 +52,8 @@ var symbolAssembly = map[string]string{
 	"argument": "ARG",
 	"this":     "THIS",
 	"that":     "THAT",
+	"pointer":  "R3",
+	"temp":     "R5",
 }
 
 func push() string {

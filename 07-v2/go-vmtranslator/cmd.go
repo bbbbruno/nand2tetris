@@ -104,6 +104,7 @@ func (c *PushCmd) Translate() string {
 }
 
 func (c *PushCmd) segmentAssembly() string {
+	sym := symbolAssembly[c.Segment]
 	switch c.Segment {
 	case "constant":
 		return ""
@@ -111,7 +112,12 @@ func (c *PushCmd) segmentAssembly() string {
 		return fmt.Sprintf(`@%s
 A=M+D
 D=M
-`, symbolAssembly[c.Segment])
+`, sym)
+	case "pointer", "temp":
+		return fmt.Sprintf(`@%s
+A=A+D
+D=M
+`, sym)
 	default:
 		return ""
 	}
@@ -125,11 +131,23 @@ M=D
 }
 
 func (c *PopCmd) segmentAssembly() string {
-	return fmt.Sprintf(`@%s
+	sym := symbolAssembly[c.Segment]
+	switch c.Segment {
+	case "local", "argument", "this", "that":
+		return fmt.Sprintf(`@%s
 D=M+D
 @R13
 M=D
-`, symbolAssembly[c.Segment])
+`, sym)
+	case "pointer", "temp":
+		return fmt.Sprintf(`@%s
+D=A+D
+@R13
+M=D
+`, sym)
+	default:
+		return ""
+	}
 }
 
 func (c *PushPopCmd) indexAssembly() string {
