@@ -5,26 +5,25 @@ import (
 	"vmtranslate"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestParse(t *testing.T) {
 	tests := []struct {
 		name   string
 		arg    string
-		want   vmtranslate.Cmd
+		want   *vmtranslate.Cmd
 		hasErr bool
 	}{
 		{
 			name:   "parse add command",
 			arg:    "add",
-			want:   &vmtranslate.ArithmeticCmd{Command: "add"},
+			want:   &vmtranslate.Cmd{Type: vmtranslate.Arithmetic, Command: "add"},
 			hasErr: false,
 		},
 		{
 			name:   "parse push constant command",
 			arg:    "push constant 10",
-			want:   &vmtranslate.PushCmd{&vmtranslate.PushPopCmd{Command: "push", Segment: "constant", Index: 10}},
+			want:   &vmtranslate.Cmd{Type: vmtranslate.Push, Command: "push", Segment: "constant", Index: 10},
 			hasErr: false,
 		},
 		{
@@ -35,8 +34,6 @@ func TestParse(t *testing.T) {
 		},
 	}
 
-	opt := cmpopts.IgnoreUnexported(vmtranslate.ArithmeticCmd{})
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := vmtranslate.Parse(tt.arg)
@@ -44,7 +41,7 @@ func TestParse(t *testing.T) {
 				t.Errorf("Parse() error = %v, hasErr %v", err, tt.hasErr)
 				return
 			}
-			if !cmp.Equal(got, tt.want, opt) {
+			if !cmp.Equal(got, tt.want) {
 				t.Errorf("Parse() = %#v, want %#v", got, tt.want)
 			}
 		})

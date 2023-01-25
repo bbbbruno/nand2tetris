@@ -1,9 +1,7 @@
 package vmtranslate
 
-import (
-	"math/rand"
-)
+import "math/rand"
 
-func (c *ArithmeticCmd) ExportSetRandomizer(r *rand.Rand) {
-	c.r = r
+func (t *Translator) ExportSetRandomizer(r *rand.Rand) {
+	t.r = r
 }

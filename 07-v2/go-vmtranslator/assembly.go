@@ -10,12 +10,12 @@ const END = `(END)
 `
 
 var arithmeticAssembly = map[string]string{
-	"add": pop("M") + pop("D+M") + push(),
-	"sub": pop("M") + pop("M-D") + push(),
-	"neg": pop("-M") + push(),
-	"and": pop("M") + pop("D&M") + push(),
-	"or":  pop("M") + pop("D|M") + push(),
-	"not": pop("!M") + push(),
+	"add": popCmp("M") + popCmp("D+M") + push(),
+	"sub": popCmp("M") + popCmp("M-D") + push(),
+	"neg": popCmp("-M") + push(),
+	"and": popCmp("M") + popCmp("D&M") + push(),
+	"or":  popCmp("M") + popCmp("D|M") + push(),
+	"not": popCmp("!M") + push(),
 }
 
 const COMPARE_ASSEMBLY = `@SP
@@ -65,10 +65,78 @@ M=M+1
 `
 }
 
-func pop(comp string) string {
+func pop() string {
+	return popCmp("M")
+}
+
+func popCmp(comp string) string {
 	return fmt.Sprintf(`@SP
 M=M-1
 A=M
 D=%s
 `, comp)
+}
+
+func pushAssembly(segment string, index int, fname string) string {
+	sym := symbolAssembly[segment]
+	switch segment {
+	case "constant":
+		return fmt.Sprintf(`@%d
+D=A
+`, index) + push()
+	case "local", "argument", "this", "that":
+		return fmt.Sprintf(`@%d
+D=A
+@%s
+A=M+D
+D=M
+`, index, sym) + push()
+	case "pointer", "temp":
+		return fmt.Sprintf(`@%d
+D=A
+@%s
+A=A+D
+D=M
+`, index, sym) + push()
+	case "static":
+		return fmt.Sprintf(`@%s.%d
+D=M
+`, fname, index) + push()
+	default:
+		return ""
+	}
+}
+
+func popAssembly(segment string, index int, fname string) string {
+	sym := symbolAssembly[segment]
+	switch segment {
+	case "local", "argument", "this", "that":
+		return fmt.Sprintf(`@%d
+D=A
+@%s
+D=M+D
+@R13
+M=D
+`, index, sym) + pop() + `@R13
+A=M
+M=D
+`
+	case "pointer", "temp":
+		return fmt.Sprintf(`@%d
+D=A
+@%s
+D=A+D
+@R13
+M=D
+`, index, sym) + pop() + `@R13
+A=M
+M=D
+`
+	case "static":
+		return pop() + fmt.Sprintf(`@%s.%d
+M=D
+`, fname, index)
+	default:
+		return ""
+	}
 }

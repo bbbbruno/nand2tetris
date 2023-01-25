@@ -3,16 +3,68 @@ package vmtranslate
 import (
 	"bufio"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"golang.org/x/xerrors"
 )
 
-func VMTranslate(in io.Reader, out io.Writer) error {
+func Run(root string) error {
+	finfo, err := os.Stat(root)
+	if err != nil {
+		return xerrors.Errorf("Error while reading specified file or directory: %w", err)
+	}
+
+	var fnames []string
+	if finfo.IsDir() {
+		files, err := os.ReadDir(root)
+		if err != nil {
+			return xerrors.Errorf("Error while reading directory %s: %w", root, err)
+		}
+		for _, file := range files {
+			if !file.IsDir() {
+				fnames = append(fnames, filepath.Join(root, file.Name()))
+			}
+		}
+	} else {
+		fnames = append(fnames, root)
+	}
+
+	for _, fname := range fnames {
+		ext := filepath.Ext(fname)
+		if ext != ".vm" {
+			return xerrors.Errorf("%s is not vm file", fname)
+		}
+
+		in, err := os.Open(fname)
+		if err != nil {
+			return xerrors.Errorf("Failed to open the input file: %w", err)
+		}
+
+		out, err := os.Create(strings.Replace(fname, ext, ".asm", 1))
+		if err != nil {
+			return xerrors.Errorf("Failed to create the output file: %w", err)
+		}
+
+		tr := NewTranslator(fname)
+
+		if err := VMTranslate(in, out, tr); err != nil {
+			return xerrors.Errorf("Failed to translate: %w", err)
+		}
+
+		in.Close()
+		out.Close()
+	}
+
+	return nil
+}
+
+func VMTranslate(in io.Reader, out io.Writer, tr *Translator) error {
 	s := bufio.NewScanner(in)
 	w := bufio.NewWriter(out)
 
-	var cmds []Cmd
+	var cmds []*Cmd
 	for currentLine := 1; s.Scan(); currentLine++ {
 		str := removeCommentAndSpaces(s.Text())
 		if str == "" {
@@ -28,7 +80,7 @@ func VMTranslate(in io.Reader, out io.Writer) error {
 	}
 
 	for _, cmd := range cmds {
-		if _, err := w.WriteString(cmd.Translate()); err != nil {
+		if _, err := w.WriteString(tr.Translate(cmd)); err != nil {
 			return xerrors.Errorf("Error while writing to the file: %w", err)
 		}
 	}

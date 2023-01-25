@@ -6,28 +6,28 @@ import (
 	"golang.org/x/xerrors"
 )
 
-func Parse(line string) (cmd Cmd, err error) {
-	ss := strings.Split(line, " ")
+func Parse(line string) (cmd *Cmd, err error) {
+	var command, segment, index string
 
-	switch command := ss[0]; {
-	case IsArithmeticCmd(command) && len(ss) == 1:
-		cmd, err = NewArithmeticCmd(command)
-		if err != nil {
-			return nil, xerrors.Errorf("%w", err)
-		}
-	case IsPushPopCmd(command) && len(ss) == 3:
-		segment, index := ss[1], ss[2]
+	ss := strings.Split(line, " ")
+	command = ss[0]
+	if len(ss) > 1 {
+		segment = ss[1]
+	}
+	if len(ss) > 2 {
+		index = ss[2]
+	}
+
+	switch {
+	case IsArithmeticCmd(command):
+		return NewArithmeticCmd(command), nil
+	case IsPushPopCmd(command, segment, index):
 		if command == "push" {
-			cmd, err = NewPushCmd(command, segment, index)
+			return NewPushCmd(command, segment, index), nil
 		} else {
-			cmd, err = NewPopCmd(command, segment, index)
-		}
-		if err != nil {
-			return nil, xerrors.Errorf("%w", err)
+			return NewPopCmd(command, segment, index), nil
 		}
 	default:
 		return nil, xerrors.Errorf("Invalid command: %s", line)
 	}
-
-	return cmd, nil
 }
