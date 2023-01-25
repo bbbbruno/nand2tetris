@@ -47,7 +47,8 @@ func Run(root string) error {
 			return xerrors.Errorf("Failed to create the output file: %w", err)
 		}
 
-		tr := NewTranslator(fname)
+		fbasename := filepath.Base(strings.Replace(fname, ext, "", 1))
+		tr := NewTranslator(fbasename)
 
 		if err := VMTranslate(in, out, tr); err != nil {
 			return xerrors.Errorf("Failed to translate: %w", err)
