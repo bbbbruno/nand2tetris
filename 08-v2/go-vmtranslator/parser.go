@@ -41,6 +41,11 @@ func Parse(line string) (cmd *Cmd, err error) {
 			return nil, xerrors.Errorf("Invalid program flow command: %s", line)
 		}
 		cmd = NewFlowCmd(command, arg1)
+	case "function", "call", "return":
+		if !IsValidFlowCmd(command, arg1, arg2) {
+			return nil, xerrors.Errorf("Invalid program flow command: %s", line)
+		}
+		cmd = NewFunctionCmd(command, arg1, arg2)
 	default:
 		return nil, xerrors.Errorf("Invalid command: %s", line)
 	}
@@ -83,6 +88,21 @@ func IsValidFlowCmd(command, arg1, arg2 string) bool {
 		return false
 	}
 	if matched, err := regexp.MatchString(`^[^0-9][a-zA-Z0-9_.:]*$`, arg1); !matched || err != nil {
+		return false
+	}
+
+	return true
+}
+
+var functionCommands = []string{"function", "call", "return"}
+
+func IsValidFunctionCmd(command, arg1, arg2 string) bool {
+	if !slices.Contains(functionCommands, command) {
+		return false
+	}
+	if (command == "function" || command == "call") && arg2 == "" {
+		return false
+	} else if command == "return" && (arg1 != "" || arg2 != "") {
 		return false
 	}
 

@@ -12,8 +12,6 @@ const (
 	Pop
 	Flow
 	Function
-	Return
-	Call
 )
 
 type Cmd struct {
@@ -39,4 +37,13 @@ func NewPopCmd(command, arg1, arg2 string) *Cmd {
 
 func NewFlowCmd(command, arg1 string) *Cmd {
 	return &Cmd{Type: Flow, Command: command, Arg1: arg1}
+}
+
+func NewFunctionCmd(command, arg1, arg2 string) *Cmd {
+	if command == "return" {
+		return &Cmd{Type: Function, Command: command}
+	} else {
+		i, _ := strconv.Atoi(arg2)
+		return &Cmd{Type: Function, Command: command, Arg1: arg1, Arg2: i}
+	}
 }

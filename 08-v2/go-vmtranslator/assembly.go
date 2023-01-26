@@ -2,6 +2,8 @@ package vmtranslate
 
 import (
 	"fmt"
+	"math/rand"
+	"strings"
 )
 
 const END = `(END)
@@ -17,29 +19,6 @@ var arithmeticAssembly = map[string]string{
 	"or":  popCmp("M") + popCmp("D|M") + push(),
 	"not": popCmp("!M") + push(),
 }
-
-const COMPARE_ASSEMBLY = `@SP
-M=M-1
-A=M
-D=M
-@SP
-M=M-1
-A=M
-D=M-D
-@TRUE%[1]d
-D;%[3]s
-D=0
-@FINALLY%[2]d
-0;JMP
-(TRUE%[1]d)
-D=-1
-(FINALLY%[2]d)
-@SP
-A=M
-M=D
-@SP
-M=M+1
-`
 
 var jmpAssembly = map[string]string{
 	"eq": "JEQ",
@@ -75,6 +54,31 @@ M=M-1
 A=M
 D=%s
 `, comp)
+}
+
+func compareAssembly(command string, r *rand.Rand) string {
+	return fmt.Sprintf(`@SP
+M=M-1
+A=M
+D=M
+@SP
+M=M-1
+A=M
+D=M-D
+@TRUE%[1]d
+D;%[3]s
+D=0
+@FINALLY%[2]d
+0;JMP
+(TRUE%[1]d)
+D=-1
+(FINALLY%[2]d)
+@SP
+A=M
+M=D
+@SP
+M=M+1
+`, r.Intn(1_000_000), r.Intn(1_000_000), jmpAssembly[command])
 }
 
 func pushAssembly(segment string, index int, fname string) string {
@@ -154,6 +158,123 @@ func flowAssembly(command, symbol string) string {
 		return pop() + fmt.Sprintf(`@%s
 D;JNE
 `, symbol)
+	default:
+		return ""
+	}
+}
+
+func functionAssembly(command, symbol string, n int, r *rand.Rand) string {
+	switch command {
+	case "function":
+		return fmt.Sprintf(`(%s)
+`, symbol) + strings.Repeat(`@SP
+A=M
+M=0
+@SP
+M=M+1
+`, n)
+	case "call":
+		return fmt.Sprintf(`@RETURN%d
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@LCL
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@ARG
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@THIS
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@THAT
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@2
+D=A
+@5
+D=A+D
+@SP
+D=M-D
+@ARG
+M=D
+@SP
+D=A
+@LCL
+M=D
+@Test.sum
+0;JMP
+`, r.Intn(1_000_000))
+	case "return":
+		return `@LCL
+D=M
+@R13
+M=D
+@SP
+M=M-1
+A=M
+D=M
+@ARG
+A=M
+M=D
+@ARG
+D=M+1
+@SP
+M=D
+@1
+D=A
+@R13
+A=M-D
+D=M
+@THAT
+M=D
+@2
+D=A
+@R13
+A=M-D
+D=M
+@THIS
+M=D
+@3
+D=A
+@R13
+A=M-D
+D=M
+@ARG
+M=D
+@4
+D=A
+@R13
+A=M-D
+D=M
+@LCL
+M=D
+@5
+D=A
+@R13
+A=M-D
+A=M
+0;JMP
+`
 	default:
 		return ""
 	}

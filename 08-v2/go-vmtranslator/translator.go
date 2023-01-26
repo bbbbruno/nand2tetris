@@ -1,7 +1,6 @@
 package vmtranslate
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 )
@@ -25,6 +24,8 @@ func (t *Translator) Translate(cmd *Cmd) string {
 		return t.translatePop(cmd)
 	case Flow:
 		return t.translateFlow(cmd)
+	case Function:
+		return t.translateFunction(cmd)
 	default:
 		return ""
 	}
@@ -33,7 +34,7 @@ func (t *Translator) Translate(cmd *Cmd) string {
 func (t *Translator) translateArithmetic(cmd *Cmd) string {
 	switch cmd.Command {
 	case "eq", "gt", "lt":
-		return fmt.Sprintf(COMPARE_ASSEMBLY, t.r.Intn(1_000_000), t.r.Intn(1_000_000), jmpAssembly[cmd.Command])
+		return compareAssembly(cmd.Command, t.r)
 	default:
 		return arithmeticAssembly[cmd.Command]
 	}
@@ -49,4 +50,8 @@ func (t *Translator) translatePop(cmd *Cmd) string {
 
 func (t *Translator) translateFlow(cmd *Cmd) string {
 	return flowAssembly(cmd.Command, cmd.Arg1)
+}
+
+func (t *Translator) translateFunction(cmd *Cmd) string {
+	return functionAssembly(cmd.Command, cmd.Arg1, cmd.Arg2, t.r)
 }

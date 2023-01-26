@@ -216,7 +216,7 @@ func TestTranslatePopCmd(t *testing.T) {
 		{
 			name: "translate pop local command",
 			arg:  &vmtranslate.Cmd{Type: vmtranslate.Pop, Command: "pop", Arg1: "local", Arg2: 1},
-			want: `@
+			want: `@1
 D=A
 @LCL
 D=M+D
@@ -300,6 +300,150 @@ A=M
 D=M
 @LOOP_START
 D;JNE
+`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tr.Translate(tt.arg)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("expected value is mismatch (-got +want):%s\n", diff)
+			}
+		})
+	}
+}
+
+func TestTranslateFunctionCmd(t *testing.T) {
+	r1, r2 := rand.New(rand.NewSource(100)), rand.New(rand.NewSource(100))
+	tr.ExportSetRandomizer(r1)
+	tests := []struct {
+		name string
+		arg  *vmtranslate.Cmd
+		want string
+	}{
+		{
+			name: "translate function command",
+			arg:  &vmtranslate.Cmd{Type: vmtranslate.Function, Command: "function", Arg1: "Test.sum", Arg2: 2},
+			want: `(Test.sum)
+@SP
+A=M
+M=0
+@SP
+M=M+1
+@SP
+A=M
+M=0
+@SP
+M=M+1
+`,
+		},
+		{
+			name: "translate call command",
+			arg:  &vmtranslate.Cmd{Type: vmtranslate.Function, Command: "call", Arg1: "Test.sum", Arg2: 2},
+			want: fmt.Sprintf(`@RETURN%d
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@LCL
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@ARG
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@THIS
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@THAT
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@2
+D=A
+@5
+D=A+D
+@SP
+D=M-D
+@ARG
+M=D
+@SP
+D=A
+@LCL
+M=D
+@Test.sum
+0;JMP
+`, r2.Intn(1_000_000)),
+		},
+		{
+			name: "translate return command",
+			arg:  &vmtranslate.Cmd{Type: vmtranslate.Function, Command: "return"},
+			want: `@LCL
+D=M
+@R13
+M=D
+@SP
+M=M-1
+A=M
+D=M
+@ARG
+A=M
+M=D
+@ARG
+D=M+1
+@SP
+M=D
+@1
+D=A
+@R13
+A=M-D
+D=M
+@THAT
+M=D
+@2
+D=A
+@R13
+A=M-D
+D=M
+@THIS
+M=D
+@3
+D=A
+@R13
+A=M-D
+D=M
+@ARG
+M=D
+@4
+D=A
+@R13
+A=M-D
+D=M
+@LCL
+M=D
+@5
+D=A
+@R13
+A=M-D
+A=M
+0;JMP
 `,
 		},
 	}
