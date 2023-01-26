@@ -100,7 +100,7 @@ func IsValidFunctionCmd(command, arg1, arg2 string) bool {
 	if !slices.Contains(functionCommands, command) {
 		return false
 	}
-	if (command == "function" || command == "call") && arg2 == "" {
+	if (command == "function" || command == "call") && (arg1 == "" || arg2 == "") {
 		return false
 	} else if command == "return" && (arg1 != "" || arg2 != "") {
 		return false

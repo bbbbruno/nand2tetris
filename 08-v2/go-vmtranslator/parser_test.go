@@ -69,6 +69,30 @@ func TestParse(t *testing.T) {
 			hasErr: true,
 		},
 		{
+			name:   "parse function command",
+			arg:    "function Test.sum 2",
+			want:   &vmtranslate.Cmd{Type: vmtranslate.Function, Command: "function", Arg1: "Test.sum", Arg2: 2},
+			hasErr: false,
+		},
+		{
+			name:   "parse error on function command",
+			arg:    "function Test.sum",
+			want:   nil,
+			hasErr: true,
+		},
+		{
+			name:   "parse return command",
+			arg:    "return",
+			want:   &vmtranslate.Cmd{Type: vmtranslate.Function, Command: "return"},
+			hasErr: false,
+		},
+		{
+			name:   "parse error on return command",
+			arg:    "return 5",
+			want:   nil,
+			hasErr: true,
+		},
+		{
 			name:   "parse error on invalid command",
 			arg:    "reverse argument 5",
 			want:   nil,
