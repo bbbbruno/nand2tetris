@@ -21,10 +21,52 @@ func TestParse(t *testing.T) {
 			hasErr: false,
 		},
 		{
+			name:   "parse invalid arithmetic command",
+			arg:    "div",
+			want:   nil,
+			hasErr: true,
+		},
+		{
 			name:   "parse push constant command",
 			arg:    "push constant 10",
 			want:   &vmtranslate.Cmd{Type: vmtranslate.Push, Command: "push", Arg1: "constant", Arg2: 10},
 			hasErr: false,
+		},
+		{
+			name:   "parse error on invalid pop constant command",
+			arg:    "pop constant 10",
+			want:   nil,
+			hasErr: true,
+		},
+		{
+			name:   "parse push command",
+			arg:    "push local 1",
+			want:   &vmtranslate.Cmd{Type: vmtranslate.Push, Command: "push", Arg1: "local", Arg2: 1},
+			hasErr: false,
+		},
+		{
+			name:   "parse error on invalid push command",
+			arg:    "push special 1",
+			want:   nil,
+			hasErr: true,
+		},
+		{
+			name:   "parse flow command",
+			arg:    "label LOOP_START",
+			want:   &vmtranslate.Cmd{Type: vmtranslate.Flow, Command: "label", Arg1: "LOOP_START"},
+			hasErr: false,
+		},
+		{
+			name:   "parse error on flow command with invalid symbol",
+			arg:    "label LOOP_START!",
+			want:   nil,
+			hasErr: true,
+		},
+		{
+			name:   "parse error on flow command with invalid index",
+			arg:    "label LOOP_START 3",
+			want:   nil,
+			hasErr: true,
 		},
 		{
 			name:   "parse error on invalid command",
