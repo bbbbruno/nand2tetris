@@ -276,23 +276,42 @@ func TestTranslateFlowCmd(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  *vmtranslate.Cmd
+		fn   string
 		want string
 	}{
 		{
 			name: "translate label command",
+			fn:   "",
 			arg:  &vmtranslate.Cmd{Type: vmtranslate.Flow, Command: "label", Arg1: "LOOP_START"},
 			want: `(LOOP_START)
 `,
 		},
 		{
+			name: "translate label command inside function",
+			fn:   "Test.sum",
+			arg:  &vmtranslate.Cmd{Type: vmtranslate.Flow, Command: "label", Arg1: "LOOP_START"},
+			want: `(Test.sum$LOOP_START)
+`,
+		},
+		{
 			name: "translate goto command",
+			fn:   "",
 			arg:  &vmtranslate.Cmd{Type: vmtranslate.Flow, Command: "goto", Arg1: "LOOP_START"},
 			want: `@LOOP_START
 0;JMP
 `,
 		},
 		{
+			name: "translate goto command inside function",
+			fn:   "Test.sum",
+			arg:  &vmtranslate.Cmd{Type: vmtranslate.Flow, Command: "goto", Arg1: "LOOP_START"},
+			want: `@Test.sum$LOOP_START
+0;JMP
+`,
+		},
+		{
 			name: "translate if-goto command",
+			fn:   "",
 			arg:  &vmtranslate.Cmd{Type: vmtranslate.Flow, Command: "if-goto", Arg1: "LOOP_START"},
 			want: `@SP
 M=M-1
@@ -302,10 +321,23 @@ D=M
 D;JNE
 `,
 		},
+		{
+			name: "translate if-goto command inside function",
+			fn:   "Test.sum",
+			arg:  &vmtranslate.Cmd{Type: vmtranslate.Flow, Command: "if-goto", Arg1: "LOOP_START"},
+			want: `@SP
+M=M-1
+A=M
+D=M
+@Test.sum$LOOP_START
+D;JNE
+`,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			tr.ExportSetFunctionName(tt.fn)
 			got := tr.Translate(tt.arg)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("expected value is mismatch (-got +want):%s\n", diff)
@@ -317,6 +349,7 @@ D;JNE
 func TestTranslateFunctionCmd(t *testing.T) {
 	r1, r2 := rand.New(rand.NewSource(100)), rand.New(rand.NewSource(100))
 	tr.ExportSetRandomizer(r1)
+	ret := r2.Intn(1_000_000)
 	tests := []struct {
 		name string
 		arg  *vmtranslate.Cmd
@@ -341,8 +374,8 @@ M=M+1
 		{
 			name: "translate call command",
 			arg:  &vmtranslate.Cmd{Type: vmtranslate.Function, Command: "call", Arg1: "Test.sum", Arg2: 2},
-			want: fmt.Sprintf(`@RETURN%d
-D=M
+			want: fmt.Sprintf(`@RETURN%[1]d
+D=A
 @SP
 A=M
 M=D
@@ -385,12 +418,13 @@ D=M-D
 @ARG
 M=D
 @SP
-D=A
+D=M
 @LCL
 M=D
 @Test.sum
 0;JMP
-`, r2.Intn(1_000_000)),
+(RETURN%[1]d)
+`, ret),
 		},
 		{
 			name: "translate return command",
@@ -398,6 +432,13 @@ M=D
 			want: `@LCL
 D=M
 @R13
+M=D
+@5
+D=A
+@R13
+A=M-D
+D=M
+@R14
 M=D
 @SP
 M=M-1
@@ -438,10 +479,7 @@ A=M-D
 D=M
 @LCL
 M=D
-@5
-D=A
-@R13
-A=M-D
+@R14
 A=M
 0;JMP
 `,

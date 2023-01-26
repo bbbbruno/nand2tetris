@@ -6,8 +6,9 @@ import (
 )
 
 type Translator struct {
-	f string
-	r *rand.Rand
+	f  string
+	r  *rand.Rand
+	fn string
 }
 
 func NewTranslator(filename string) *Translator {
@@ -49,9 +50,12 @@ func (t *Translator) translatePop(cmd *Cmd) string {
 }
 
 func (t *Translator) translateFlow(cmd *Cmd) string {
-	return flowAssembly(cmd.Command, cmd.Arg1)
+	return flowAssembly(cmd.Command, cmd.Arg1, t.fn)
 }
 
 func (t *Translator) translateFunction(cmd *Cmd) string {
+	if cmd.Command == "function" {
+		t.fn = cmd.Arg1
+	}
 	return functionAssembly(cmd.Command, cmd.Arg1, cmd.Arg2, t.r)
 }

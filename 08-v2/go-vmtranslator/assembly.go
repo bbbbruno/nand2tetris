@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"time"
 )
 
-const END = `(END)
-@END
-0;JMP
-`
+func initAssembly() string {
+	return `@256
+D=A
+@SP
+M=D
+` + functionAssembly("call", "Sys.init", 0, rand.New(rand.NewSource(time.Now().UnixNano())))
+}
 
 var arithmeticAssembly = map[string]string{
 	"add": popCmp("M") + popCmp("D+M") + push(),
@@ -145,19 +149,23 @@ M=D
 	}
 }
 
-func flowAssembly(command, symbol string) string {
+func flowAssembly(command, symbol, fn string) string {
+	var s string
+	if fn != "" {
+		s = fn + "$"
+	}
 	switch command {
 	case "label":
-		return fmt.Sprintf(`(%s)
-`, symbol)
+		return fmt.Sprintf(`(%s%s)
+`, s, symbol)
 	case "goto":
-		return fmt.Sprintf(`@%s
+		return fmt.Sprintf(`@%s%s
 0;JMP
-`, symbol)
+`, s, symbol)
 	case "if-goto":
-		return pop() + fmt.Sprintf(`@%s
+		return pop() + fmt.Sprintf(`@%s%s
 D;JNE
-`, symbol)
+`, s, symbol)
 	default:
 		return ""
 	}
@@ -174,8 +182,9 @@ M=0
 M=M+1
 `, n)
 	case "call":
-		return fmt.Sprintf(`@RETURN%d
-D=M
+		ret := r.Intn(1_000_000)
+		return fmt.Sprintf(`@RETURN%[1]d
+D=A
 @SP
 A=M
 M=D
@@ -209,7 +218,7 @@ A=M
 M=D
 @SP
 M=M+1
-@2
+@%[2]d
 D=A
 @5
 D=A+D
@@ -218,16 +227,24 @@ D=M-D
 @ARG
 M=D
 @SP
-D=A
+D=M
 @LCL
 M=D
-@Test.sum
+@%[3]s
 0;JMP
-`, r.Intn(1_000_000))
+(RETURN%[1]d)
+`, ret, n, symbol)
 	case "return":
 		return `@LCL
 D=M
 @R13
+M=D
+@5
+D=A
+@R13
+A=M-D
+D=M
+@R14
 M=D
 @SP
 M=M-1
@@ -268,10 +285,7 @@ A=M-D
 D=M
 @LCL
 M=D
-@5
-D=A
-@R13
-A=M-D
+@R14
 A=M
 0;JMP
 `

@@ -42,7 +42,7 @@ func Parse(line string) (cmd *Cmd, err error) {
 		}
 		cmd = NewFlowCmd(command, arg1)
 	case "function", "call", "return":
-		if !IsValidFlowCmd(command, arg1, arg2) {
+		if !IsValidFunctionCmd(command, arg1, arg2) {
 			return nil, xerrors.Errorf("Invalid program flow command: %s", line)
 		}
 		cmd = NewFunctionCmd(command, arg1, arg2)
